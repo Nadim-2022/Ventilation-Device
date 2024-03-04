@@ -1,3 +1,29 @@
+# Ignore build output directories
 cmake-build-debug/
+cmake-build-release/
+
+# Ignore IDE settings
+.idea/
+
+# Ignore ARM GCC build files
+*.o
+*.ko
+*.obj
+*.elf
+*.map
+*.bin
+
+# Ignore Executables
+*.exe
+*.out
+*.app
+*.iPA
+*.plist
+*.dat
+
+# Ignore macOS metadata
 .DS_Store
-.idea
+
+# Ignore Windows image file caches
+Thumbs.db
+Desktop.ini
