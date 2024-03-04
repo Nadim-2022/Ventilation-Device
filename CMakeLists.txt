@@ -49,6 +49,10 @@ add_executable(${PROJECT_NAME}
         display/mono_vlsb.h
         display/ssd1306.cpp
         display/ssd1306.h
+        i2c_display.cpp
+        i2c_display.h
+        interupt_handler.cpp
+        interupt_handler.h
 )
 
 # Create map/bin/hex/uf2 files
