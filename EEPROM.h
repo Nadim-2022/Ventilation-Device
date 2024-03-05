@@ -20,7 +20,8 @@ public:
 
     void writeToMemory(uint16_t memory_address, uint8_t data);
     uint8_t readFromMemory(uint16_t memory_address);
-    uint16_t crc16(const uint8_t *data_p, size_t length);
+    static uint16_t crc16(const uint8_t *data_p, size_t length);
+    void clearEEPROM();
 
 private:
     i2c_inst *i2c;                 // I2C instance

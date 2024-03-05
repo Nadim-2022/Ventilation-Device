@@ -1,13 +1,14 @@
 //
 // Created by Aleksi Merilainen on 5.3.2024.
 //
+
 #include "EEPROM.h"
-#include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include <cstdio>
 
 #define SDA_PIN 16
 #define SCL_PIN 17
+#define EEPROM_SIZE 2048
 
 EEPROM::EEPROM(i2c_inst *i2c, uint16_t device_address)
         : i2c(i2c), device_address(device_address)
@@ -64,6 +65,12 @@ void EEPROM::writeToMemory(uint16_t memory_address, uint8_t data){
         printf("Failed to write CRC at EEPROM address %u\n", memory_address + 1);
     } else {
         printf("CRC written successfully at EEPROM address %u.\n", memory_address + 1);
+    }
+}
+
+void EEPROM::clearEEPROM() {
+    for (uint16_t i = 0; i < EEPROM_SIZE; ++i) {
+        writeToMemory(i, 0xFF);
     }
 }
 
