@@ -56,6 +56,7 @@ int main(){
     InterruptHandler handler(10, 12);
     I2C_Display display(14, 15, i2c1);
     display.displayText("Hello World", raspberry26x32);
+    //display.show();
 
     while (true) {
         tight_loop_contents();

@@ -7,7 +7,9 @@
 
 
 class ventilation {
+public:
 
+private:
 };
 
 
