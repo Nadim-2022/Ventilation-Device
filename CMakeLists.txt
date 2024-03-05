@@ -53,6 +53,8 @@ add_executable(${PROJECT_NAME}
         i2c_display.h
         interupt_handler.cpp
         interupt_handler.h
+        ventilation.cpp
+        ventilation.h
 )
 
 # Create map/bin/hex/uf2 files
