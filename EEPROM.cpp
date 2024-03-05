@@ -29,35 +29,69 @@ EEPROM::~EEPROM()
     gpio_pull_down(SDA_PIN);
     gpio_pull_down(SCL_PIN);
 }
-
-void EEPROM::writeToMemory(uint16_t memory_address, uint8_t data)
-{
-    uint8_t buffer[3];
-    buffer[0] = (memory_address >> 8) & 0xFF;
-    buffer[1] = memory_address & 0xFF;
-    buffer[2] = data;
-
-    int result = i2c_write_blocking(I2C_PORT, EEPROM_ADDRESS, buffer, 3, false);
-    if (result != 3) {
-        printf("Failed to write data at address %u\n", memory_address);
+uint16_t EEPROM::crc16(const uint8_t *data_p, size_t length) {
+    uint8_t x;
+    uint16_t crc = 0xFFFF;
+    while (length--) {
+        x = crc >> 8 ^ *data_p++;
+        x ^= x >> 4;
+        crc = (crc << 8) ^ ((uint16_t)(x << 12)) ^ ((uint16_t)(x << 5)) ^ ((uint16_t)x);
     }
-    sleep_ms(5);
+    return crc;
 }
 
-uint8_t EEPROM::readFromMemory(uint16_t memory_address)
-{
-    uint8_t address_buffer[2];
-    address_buffer[0] = (memory_address >> 8) & 0xFF; // high byte
-    address_buffer[1] = memory_address & 0xFF; // low byte
-    uint8_t data = 0;
+void EEPROM::writeToMemory(uint16_t memory_address, uint8_t data){
+    uint8_t buffer[3];
 
-    if (i2c_write_blocking(I2C_PORT, EEPROM_ADDRESS, address_buffer, 2, true) != 2) {
-        printf("Failed to write at address %u\n", memory_address);
-        return data;
+    // Address for the EEPROM
+    buffer[0] = (memory_address >> 8) & 0xFF; // high byte
+    buffer[1] = memory_address & 0xFF;        // low byte
+
+    // Data byte to be written
+    buffer[2] = data;
+    int result = i2c_write_blocking(this->i2c, this->device_address, buffer, 3, false);
+
+    // Calculate the CRC
+    uint16_t crc = crc16(&data, sizeof(data));
+
+    // Write the CRC
+    buffer[0] = ((memory_address + 1) >> 8) & 0xFF;  // high byte
+    buffer[1] = (memory_address + 1) & 0xFF;         // low byte
+    buffer[2] = crc; // CRC value
+    result = i2c_write_blocking(this->i2c, this->device_address, buffer, 3, false);
+
+    if (result != 3) {
+        printf("Failed to write CRC at EEPROM address %u\n", memory_address + 1);
+    } else {
+        printf("CRC written successfully at EEPROM address %u.\n", memory_address + 1);
     }
+}
 
-    if (i2c_read_blocking(I2C_PORT, EEPROM_ADDRESS, &data, 1, false) != 1) {
-        printf("Failed to read at address %u\n", memory_address);
+
+uint8_t EEPROM::readFromMemory(uint16_t memory_address){
+
+    // Prepare address buffer
+    uint8_t address_buffer[2];
+    address_buffer[0] = (memory_address >> 8) & 0xFF; // Memory address high byte
+    address_buffer[1] = memory_address & 0xFF;        // Memory address low byte
+
+    // Read data
+    uint8_t data;
+    i2c_write_blocking(this->i2c, this->device_address, address_buffer, 2, true);
+    i2c_read_blocking(this->i2c, this->device_address, &data, 1, false);
+
+    // Read CRC
+    uint16_t stored_crc = 0;
+    address_buffer[0] = ((memory_address + 1) >> 8) & 0xFF; // CRC address high byte
+    address_buffer[1] = (memory_address + 1) & 0xFF;        // CRC address low byte
+    i2c_write_blocking(this->i2c, this->device_address, address_buffer, 2, true);
+    i2c_read_blocking(this->i2c, this->device_address, reinterpret_cast<uint8_t *>(&stored_crc), 2, false);
+
+    // Validate CRC
+    uint16_t computed_crc = crc16(&data, sizeof(data));
+    if (computed_crc != stored_crc) {
+        // Print error or handle situation accordingly
+        printf("CRC check failed for EEPROM address %u.\n", memory_address);
     }
 
     return data;
