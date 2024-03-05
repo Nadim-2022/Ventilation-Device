@@ -26,4 +26,5 @@ cmake-build-release/
 
 # Ignore Windows image file caches
 Thumbs.db
-Desktop.ini
+Desktop.iniCMakeLists.txt
+cmake-build-debug-arm-gcc/
