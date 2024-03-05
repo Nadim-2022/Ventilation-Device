@@ -3,7 +3,27 @@
 //
 
 #include "i2c_display.h"
+I2C_Display::I2C_Display(uint8_t sda, uint8_t scl, i2c_inst_t *i2c): ssd1306(i2c){
+    i2c_init(i2c, 100000);
+    gpio_set_function(sda, GPIO_FUNC_I2C);
+    gpio_set_function(scl, GPIO_FUNC_I2C);
+    gpio_pull_up(sda);
+    gpio_pull_up(scl);
+    width = 0;
+}
 
+void I2C_Display::displayText(const char *text, const uint8_t *raspberry26x32) {
+    fill(0);
+    I2C_Display::text(text, 0, 0);
+    mono_vlsb rb(raspberry26x32, 26, 32);
+    blit(rb, 20, 20);
+    rect(15, 15, 35, 45, 1);
+    line(60, 5, 120, 60, 1);
+    line(60, 60, 120, 5, 1);
+    show();
+
+}
+/*
 I2C_Display::I2C_Display(uint8_t sda, uint8_t scl, i2c_inst_t *i2c) {
     i2c_init(i2c, 100000);
     gpio_set_function(sda, GPIO_FUNC_I2C);
@@ -49,3 +69,4 @@ void I2C_Display::displayControlSpeed(uint16_t speed) {
     display->rect(0, 40,width , 20, 1, true);
     display->show();
 }
+ */
