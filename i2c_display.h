@@ -20,6 +20,7 @@ public:
     void displayControlPressureLevel(uint16_t pressure);
     void displayControlSpeed(uint16_t speed);
     void displayStatus(const int co2, const int temp, const int hum, const int fan, const int ap);
+    void displayWifiIcons(const uint8_t *wifi_icon);
 
 
 private:

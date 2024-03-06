@@ -18,8 +18,8 @@ I2C_Display::I2C_Display(uint8_t sda, uint8_t scl, i2c_inst_t *i2c) {
 void I2C_Display::displayText(const char *text, const uint8_t *raspberry26x32) {
     display->fill(0);
     display->text(text, 0, 0);
-    mono_vlsb rb(raspberry26x32, 20, 20);
-    display->blit(rb, 30, 30);
+    mono_vlsb rb(raspberry26x32, 13, 11);
+    display->blit(rb, 114, 0);
     display->show();
 
 }
@@ -98,5 +98,11 @@ void I2C_Display::displayStatus(const int co2 = 0, const int temp = 0, const int
     display->text(tmp, 0, 35);
     display->text(fs, 0, 46);
     display->text(ap, 0, 57);
+    display->show();
+}
+
+void I2C_Display::displayWifiIcons(const uint8_t *wifi_icon) {
+    mono_vlsb rb(wifi_icon, 13, 11);
+    display->blit(rb, 114, 0);
     display->show();
 }
