@@ -53,18 +53,45 @@ static const uint8_t wifi_signal[] =
 
 int main(){
     stdio_init_all();
+    i2c_init(i2c1, 100000);
     InterruptHandler handler(10, 12);
-    I2C_Display tft(14, 15, i2c1);
+    I2C_Display display(14, 15, i2c1);
+    //display.displayText("Hello World", raspberry26x32);
+    //display.show();
+    auto uart{std::make_shared<PicoUart>(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE)};
+    auto rtu_client{std::make_shared<ModbusClient>(uart)};
+    ModbusRegister rh(rtu_client, 241, 256);
+    ModbusRegister tm(rtu_client, 241, 257);
+    ModbusRegister co2(rtu_client, 240, 256);
+    auto modbus_poll = make_timeout_time_ms(3000);
+    ModbusRegister produal(rtu_client, 1, 0);
+    produal.write(0);
+    sleep_ms((100));
+    produal.write(0);
+
+    int pressure = 0;
+    int speed = 0;
+    uint8_t  data[1] = {0xF1};
+    uint8_t  values[2] = {0};
+    uint16_t  show = 0;
+
     int count = 0;
-    tft.displayControlPressureLevel(56);
-    //tft.displayText("Hello World", wifi_signal);
-    //tft.displayStatus(85,33,77,88,120);
+    //int last_count = handler.count;
     while (true) {
-        if (InterruptHandler::count != count) {
-            count = InterruptHandler::count;
-            printf("Interrupt count: %d\n", count);
+        if(pressure !=handler.count){
+            std::cout << "Last count: " << handler.count << std::endl;
+           i2c_write_blocking(i2c1, 64, data, 1, false);  // Send address
+            sleep_ms(10);
+            std::cout << "It's my life " << handler.count << std::endl;
+            i2c_read_blocking(i2c1, 64, values, 2, false);  // Read values
+            sleep_ms(100);
+            pressure =handler.count;
+            produal.write(pressure*10);
+            sleep_ms((100));
+            show =( (values[0] << 8) | values[1]) /240;
+            std::cout << "Pressure: " << show << std::endl;
         }
-        tft.displayControlPressureLevel(count);
+        //tight_loop_contents();
     }
     return 0;
 
