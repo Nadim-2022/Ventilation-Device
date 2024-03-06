@@ -15,13 +15,14 @@ class InterruptHandler {
 private:
     static void callback(uint gpio, uint32_t events);
     static uint16_t timestamp;
-    static int count;
+
 
 
 public:
-
+    int getCount();
     InterruptHandler(uint8_t PinA0, uint8_t pinC0);
     void setupPin(uint8_t pin);
+    static int count;
 };
 
 #endif //VENTILATION_CONTROLLER_PROJECT_INTERUPT_HANDLER_H

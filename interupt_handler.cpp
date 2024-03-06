@@ -22,10 +22,14 @@ void InterruptHandler::callback(uint gpio, uint32_t events) {
             std::cout << "Interrupt count: " << count << std::endl;
         } else{
             count --;
-            std::cout << "Interrupt count: " << count << std::endl;
+           std::cout << "Interrupt count: " << count << std::endl;
         }
         timestamp = time_us_32();
     }
 }
 uint16_t InterruptHandler::timestamp = time_us_64();
 int InterruptHandler::count = 0;
+
+int InterruptHandler::getCount() {
+    return count;
+}
