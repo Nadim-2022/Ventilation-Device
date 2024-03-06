@@ -13,14 +13,20 @@ class I2C_Display {
 public:
     I2C_Display(uint8_t sda, uint8_t scl, i2c_inst_t *i2c);
     void displayText(const char *text, const uint8_t *raspberry26x32);
+    void welcomeScreen();
+    void autoOrManual();
+    void connecting();
     void displayMenu(const char *textA, const char *textB);
     void displayControlPressureLevel(uint16_t pressure);
     void displayControlSpeed(uint16_t speed);
-    void displayStatus(const char *status);
+    void displayStatus(const int co2, const int temp, const int hum, const int fan, const int ap);
 
 
 private:
     std::shared_ptr<ssd1306> display;
     uint16_t width;
 };
+
+
+
 #endif //PICO_MODBUS_I2C_DISPLAY_H
