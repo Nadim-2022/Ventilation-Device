@@ -37,31 +37,16 @@
 
 #ifdef USE_SSD1306
 static const uint8_t wifi_signal[] =
-        {// font edit begin : monovlsb : 13 : 11
-                0x18, 0x0C, 0xC6, 0x63, 0x31, 0x11, 0x11, 0x11,
-                0x31, 0x63, 0xC6, 0x0C, 0x18, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x07, 0x07, 0x07, 0x00, 0x00, 0x00,
-                0x00, 0x00
+        {// font edit begin : monovlsb : 10 : 7
+                0x08, 0x04, 0x12, 0x09, 0x65, 0x65, 0x09, 0x12,
+                0x04, 0x08
 // font edit end
         };
-
-static const uint8_t wifi_signal_weak[] =
-        {
-// font edit begin : monovlsb : 13 : 11
-                0x00, 0x00, 0xC0, 0x60, 0x30, 0x10, 0x10, 0x10,
-                0x30, 0x60, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x07, 0x07, 0x07, 0x00, 0x00, 0x00,
-                0x00, 0x00
-// font edit end
-        };
-
 
 static const uint8_t wifi_signal_broken[] =
         {
-// font edit begin : monovlsb : 13 : 11
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x07, 0x07, 0x07, 0x00, 0x00, 0x00,
+// font edit begin : monovlsb : 10 : 7
+                0x00, 0x00, 0x00, 0x00, 0x60, 0x60, 0x00, 0x00,
                 0x00, 0x00
 // font edit end
         };
@@ -69,14 +54,14 @@ static const uint8_t wifi_signal_broken[] =
 
 #endif
 
-int main(){
+int main() {
     stdio_init_all();
-    /*i2c_init(i2c1, 100000);
+    i2c_init(i2c1, 100000);
     InterruptHandler handler(10, 12);
     I2C_Display display(14, 15, i2c1);
     //display.displayText("Hello World", raspberry26x32);
     //display.show();
-    auto uart{std::make_shared<PicoUart>(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE)};
+    /*auto uart{std::make_shared<PicoUart>(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE)};
     auto rtu_client{std::make_shared<ModbusClient>(uart)};
     ModbusRegister rh(rtu_client, 241, 256);
     ModbusRegister tm(rtu_client, 241, 257);
@@ -95,40 +80,24 @@ int main(){
 
     int count = 0;
     //int last_count = handler.count;
+     */
     while (true) {
-        if(pressure !=handler.count){
-            std::cout << "Last count: " << handler.count << std::endl;
-           i2c_write_blocking(i2c1, 64, data, 1, false);  // Send address
-            sleep_ms(10);
-            std::cout << "It's my life " << handler.count << std::endl;
-            i2c_read_blocking(i2c1, 64, values, 2, false);  // Read values
+        if (handler.count) {
+            //std::cout << "Last count: " << handler.count << std::endl;
+            //i2c_write_blocking(i2c1, 64, data, 1, false);  // Send address
+            //sleep_ms(10);
+            //std::cout << "It's my life " << handler.count << std::endl;
+            //i2c_read_blocking(i2c1, 64, values, 2, false);  // Read values
             sleep_ms(100);
-            pressure =handler.count;
+            /*pressure =handler.count;
             produal.write(pressure*10);
             sleep_ms((100));
             show =( (values[0] << 8) | values[1]) /240;
             std::cout << "Pressure: " << show << std::endl;
+             */
         }
         //tight_loop_contents();
     }
-     */
-    InterruptHandler handler(10, 12);
-    I2C_Display tft(14, 15, i2c1);
-
-//    tft.displayWifiIcons(wifi_signal);
-  //  tft.displayStatus(85,33,77,88,120);
-
-    while (true) {
-        tft.displayWifiIcons(wifi_signal_broken);
-        sleep_ms(1000);
-        tft.displayWifiIcons(wifi_signal_weak);
-        sleep_ms(1000);
-        tft.displayWifiIcons(wifi_signal);
-        sleep_ms(1000);
-    }
-
-    //tft.displayStatus(85,33,77,88,120);
-
-    return 0;
-
+    //InterruptHandler handler(10, 12);
+    //I2C_Display tft(14, 15, i2c1);
 }
