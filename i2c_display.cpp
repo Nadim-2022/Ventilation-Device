@@ -84,7 +84,7 @@ void I2C_Display::connecting() {
 }
 
 void I2C_Display::displayStatus(const int co2 = 0, const int temp = 0, const int hum = 0, const int fan = 0, const int AP = 0) {
-    std::string fs = "FS  : " + std::to_string(fan) + " %";
+    std::string fs = "FS  : " + std::to_string(fan/10) + " %";
     std::string ap = "AP  : " + std::to_string(AP) + " Pa";
     std::string Co2 = "Co2 : " + std::to_string(co2) + " ppm";
     std::string tmp = "Temp: " + std::to_string(temp) + " C";

@@ -1,4 +1,4 @@
-#include <stdio.h>
+/#include <stdio.h>
 #include <string.h>
 #include <cmath>
 #include "pico/stdlib.h"
@@ -53,10 +53,13 @@ static const uint8_t raspberry26x32[] =
 
 void messageArrived(MQTT::MessageData &md) {
     MQTT::Message &message = md.message;
+    char payload_str[message.payloadlen + 1];
+    memcpy(payload_str, message.payload, message.payloadlen);
+    payload_str[message.payloadlen] = '\0';
 
     printf("Message arrived: qos %d, retained %d, dup %d, packetid %d\n",
            message.qos, message.retained, message.dup, message.id);
-    printf("Payload %s\n", (char *) message.payload);
+    printf("Payload %s\n",payload_str);
 }
 
 static const char *topic = "test-topic";
@@ -109,10 +112,10 @@ int main() {
 #ifdef USE_MQTT
     //IPStack ipstack("SSID", "PASSWORD"); // example
     //IPStack ipstack("KME662", "SmartIot"); // example
-    IPStack ipstack("SmartIotMQTT", "SmartIot"); // example
+    IPStack ipstack("Nadim", "nadimahmed"); // example
     auto client = MQTT::Client<IPStack, Countdown>(ipstack);
 
-    int rc = ipstack.connect("192.168.1.10", 1883);
+    int rc = ipstack.connect("172.20.10.3", 1883);
     if (rc != 1) {
         printf("rc from TCP connect is %d\n", rc);
     }
@@ -131,7 +134,7 @@ int main() {
     printf("MQTT connected\n");
 
     // We subscribe QoS2. Messages sent with lower QoS will be delivered using the QoS they were sent with
-    rc = client.subscribe(topic, MQTT::QOS2, messageArrived);
+    rc = client.subscribe("hannah/controller/settings", MQTT::QOS2, messageArrived);
     if (rc != 0) {
         printf("rc from MQTT subscribe is %d\n", rc);
     }
@@ -163,6 +166,7 @@ int main() {
             printf("RH=%5.1f%%\n", rh.read() / 10.0);
         }
 #endif
+
 #ifdef USE_MQTT
         if (time_reached(mqtt_send)) {
             mqtt_send = delayed_by_ms(mqtt_send, 2000);
@@ -174,7 +178,7 @@ int main() {
                 }
 
             }
-            char buf[100];
+            char buf[100] = "Hello World";
             int rc = 0;
             MQTT::Message message;
             message.retained = false;
@@ -183,8 +187,8 @@ int main() {
             switch (mqtt_qos) {
                 case 0:
                     // Send and receive QoS 0 message
-                    sprintf(buf, "Msg nr: %d QoS 0 message", ++msg_count);
-                    printf("%s\n", buf);
+                    //sprintf(buf, "Msg nr: %d QoS 0 message", ++msg_count);
+                    printf("gggggg %s\n", buf);
                     message.qos = MQTT::QOS0;
                     message.payloadlen = strlen(buf) + 1;
                     rc = client.publish(topic, message);
@@ -218,7 +222,6 @@ int main() {
                     break;
             }
         }
-
         cyw43_arch_poll(); // obsolete? - see below
         client.yield(100); // socket that client uses calls cyw43_arch_poll()
 #endif
