@@ -78,7 +78,9 @@ static const char *topicSUB = "controller/settings";
 static const char *topicPUB = "controller/status";
 
 int main() {
-    const uint led_pin = 22;
+    stdio_init_all();
+
+   /* const uint led_pin = 22;
     const uint button = 9;
 
     // Initialize LED pin
@@ -89,7 +91,7 @@ int main() {
     gpio_set_dir(button, GPIO_IN);
     gpio_pull_up(button);
 
-    stdio_init_all();
+
    // I2C_Display tft(14, 15, i2c1);
     Ventilation vent(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE);
     vent.addSensor("fan", 1, 0);
@@ -98,7 +100,7 @@ int main() {
     vent.addSensor("rh", 241, 256);
     //vent.registers["fan"]->write(0);
     vent.writeSensor("fan", 0);
-    sleep_ms(100);
+    sleep_ms(100);*/
     /*//vent.writeSensor("fan", 82);
     int count = 0;
     i2c_init(i2c1, 400*1000);
@@ -131,30 +133,87 @@ int main() {
     } else {
         printf("Failed to subscribe to topic: %s\n", topicSUB);
     }*/
-
-    //tft.welcomeScreen();
+    i2c_init(i2c1, 400*1000);
+    gpio_set_function(14, GPIO_FUNC_I2C);
+    gpio_set_function(15, GPIO_FUNC_I2C);
+    TFTDisplay tft( 14, 15, i2c1);
+    tft.displayKeyboard(0);
     while (true) {
-     /*   for(int i = 0; i < 100; i++){
-            vent.writeSensor("fan", i*10);
-            sleep_ms(10);
-        }
-        for(int i = 100; i > 0; i--){
-            vent.writeSensor("fan", i*10);
-            sleep_ms(10);
-        }
-        // Wait for a message to be received
-       // mqttManager.yield(1000);
+        tft.selectChar(0);
+        sleep_ms(1000);
+        tft.selectChar(1);
+        sleep_ms(1000);
+        tft.selectChar(2);
+        sleep_ms(1000);
+        tft.selectChar(3);
+        sleep_ms(1000);
+        tft.selectChar(4);
+        sleep_ms(1000);
+        tft.selectChar(5);
+        sleep_ms(1000);
+        tft.selectChar(6);
+        sleep_ms(1000);
+        tft.selectChar(7);
+        sleep_ms(1000);
+        tft.selectChar(8);
+        sleep_ms(1000);
+        tft.selectChar(9);
+        sleep_ms(1000);
+        tft.selectChar(10);
+        sleep_ms(1000);
+        tft.selectChar(11);
+        sleep_ms(1000);
+        tft.selectChar(12);
+        sleep_ms(1000);
+        tft.selectChar(13);
+        sleep_ms(1000);
+        tft.selectChar(14);
+        sleep_ms(1000);
+        tft.selectChar(15);
+        sleep_ms(1000);
+        tft.selectChar(16);
+        sleep_ms(1000);
+        tft.selectChar(17);
+        sleep_ms(1000);
+        tft.selectChar(18);
+        sleep_ms(1000);
+        tft.selectChar(19);
+        sleep_ms(1000);
+        tft.selectChar(20);
+        sleep_ms(1000);
+        tft.selectChar(21);
+        sleep_ms(1000);
+        tft.selectChar(22);
+        sleep_ms(1000);
+        tft.selectChar(23);
+        sleep_ms(1000);
+        tft.selectChar(24);
+        sleep_ms(1000);
+        tft.selectChar(25);
+        sleep_ms(1000);
 
-       // read sensore data
-        int fan = vent.readSensor("fan");
-        int co2 = vent.readSensor("co2");
-        int t = vent.readSensor("t");
-        int rh = vent.readSensor("rh");
-        printf("Fan: %d\n", fan);
-        printf("CO2: %d\n", co2);
-        printf("Temperature: %d\n", t);
-        printf("Relative Humidity: %d\n", rh);
-        sleep_ms(2000);*/
+
+        /*   for(int i = 0; i < 100; i++){
+               vent.writeSensor("fan", i*10);
+               sleep_ms(10);
+           }
+           for(int i = 100; i > 0; i--){
+               vent.writeSensor("fan", i*10);
+               sleep_ms(10);
+           }
+           // Wait for a message to be received
+          // mqttManager.yield(1000);
+
+          // read sensore data
+           int fan = vent.readSensor("fan");
+           int co2 = vent.readSensor("co2");
+           int t = vent.readSensor("t");
+           int rh = vent.readSensor("rh");
+           printf("Fan: %d\n", fan);
+           printf("CO2: %d\n", co2);
+           printf("Temperature: %d\n", t);
+           printf("Relative Humidity: %d\n", rh);
+           sleep_ms(2000);*/
 
     }
     return 0;

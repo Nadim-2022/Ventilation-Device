@@ -158,3 +158,4 @@ void I2C_Display::test(uint16_t letter) {
     display->text("2. User2", 0, 32);
     display->show();
 }
+

@@ -22,6 +22,8 @@ public:
     void loginscreen();
     void connectTowifi();
     void selectmenu(int selection);
+    void displayKeyboard(int number);
+    void selectChar(int selection);
 
 
 private:

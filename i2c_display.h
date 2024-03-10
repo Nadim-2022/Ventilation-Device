@@ -24,6 +24,7 @@ public:
     void displayControlSpeed(uint16_t speed);
     void test(uint16_t letter);
     void displayStatus(const int co2, const int temp, const int hum, const int fan, const int ap, const uint8_t *wifi_icon);
+    void displayKeyboard();
 
 
 private:

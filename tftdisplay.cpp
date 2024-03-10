@@ -2,6 +2,7 @@
 // Created by iamna on 09/03/2024.
 //
 
+#include <iostream>
 #include "tftdisplay.h"
 #include "font_petme128_8x8.h"
 
@@ -81,3 +82,84 @@ void TFTDisplay::selectmenu(int selection) {
     }
     show();
 }
+
+void TFTDisplay::selectChar(int selection) {
+
+    int positionY = 0;
+
+    if (selection > 9 && selection <= 19) {
+        selection = selection-10;
+        positionY += 12;
+    }
+    else if (selection > 19 ) {
+        selection = selection-20;
+        positionY += 24;
+    }
+
+    int positionX = selection * 12;
+
+    rect(2 + (positionX), positionY, 12, 12, 1);
+    show();
+    rect(2 + (positionX), positionY, 12, 12, 0);
+
+}
+
+void TFTDisplay::displayKeyboard(int number) {
+
+    int capitalStart = 65;
+    int capitalEnd = 90;
+    int smallStart = 97;
+    int smallEnd = 122;
+    int  specialcharStart = 33;
+    int specialcharEnd = 64;
+    int positionX = 4;
+    int positionY = 2;
+    int positionY_ref =0;
+    int start = 0;
+    int end = 0;
+
+    if (number == 0){
+        start = capitalStart;
+        end = capitalEnd;
+    }else if (number == 1 ){
+        start = smallStart;
+        end = smallEnd;
+    } else if (number == 2){
+        start = specialcharStart;
+        end = specialcharEnd;
+    }
+    fill(0);
+    for (int i = start; i <= end; i++) {
+        std::string c(1, static_cast<char>(i));
+        text(c.c_str(), positionX, positionY);
+        positionX+=12;
+        positionY_ref ++;
+        std::cout << c.c_str() << std::endl;
+        if (positionY_ref == 10) {  // After 12 characters, move to the next row
+            positionY += 12;  // Adjust this value as needed to fit your display
+            positionX = 4;
+            positionY_ref = 0;
+        }
+    }
+
+    line(4, 62, 16, 62, 1);
+    line(22, 62, 34, 62, 1);
+    line(40, 62, 52, 62, 1);
+    line(58, 62, 70, 62, 1);
+    line(76, 62, 88, 62, 1);
+    line(94, 62, 106, 62, 1);
+    line(112, 62, 124, 62, 1);
+
+    show();
+}
+    /*
+
+    show();
+}*/
+/*void TFTDisplay::displayKeyboard() {
+    int positionX = 0;
+    int positionY = 0;
+    std::string c(1, static_cast<char>(0x41));
+    text(c.c_str(), 0, 0);
+    show();
+}*/
