@@ -78,21 +78,34 @@ static const char *topicSUB = "controller/settings";
 static const char *topicPUB = "controller/status";
 
 int main() {
-    stdio_init_all();
 
-   /* const uint led_pin = 22;
-    const uint button = 9;
+    uint8_t rotA = 10;
+    uint8_t rotB = 11;
+    uint8_t rotP = 12; //
+    uint8_t SW0 = 9;
+    uint8_t  SW1 = 8;
+    uint8_t  SW2 = 7;
+    InterruptHandler rothandlerA(rotA);
+    //InterruptHandler rothandlerB(rotB);
+    InterruptHandler rothandlerP(rotP);
+    InterruptHandler _button1(SW0);
+    InterruptHandler _button2(SW1);
+    InterruptHandler _button3(SW2);
+
+    const uint led_pin = 22;
+    const uint led_pin2 = 21;
+
 
     // Initialize LED pin
     gpio_init(led_pin);
     gpio_set_dir(led_pin, GPIO_OUT);
 
-    gpio_init(button);
-    gpio_set_dir(button, GPIO_IN);
-    gpio_pull_up(button);
+    gpio_init(led_pin2);
+    gpio_set_dir(led_pin2, GPIO_OUT);
 
 
-   // I2C_Display tft(14, 15, i2c1);
+    stdio_init_all();
+    // I2C_Display tft(14, 15, i2c1);
     Ventilation vent(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE);
     vent.addSensor("fan", 1, 0);
     vent.addSensor("co2", 240, 256);
@@ -100,18 +113,17 @@ int main() {
     vent.addSensor("rh", 241, 256);
     //vent.registers["fan"]->write(0);
     vent.writeSensor("fan", 0);
-    sleep_ms(100);*/
-    /*//vent.writeSensor("fan", 82);
-    int count = 0;
+    sleep_ms(100);
+
     i2c_init(i2c1, 400*1000);
     gpio_set_function(14, GPIO_FUNC_I2C);
     gpio_set_function(15, GPIO_FUNC_I2C);
     TFTDisplay tft( 14, 15, i2c1);
-    tft.displayControlPressureLevel(50);
-   // tft.displayMenu("Auto", "Manual");
-   // tft.show();
+    //tft.displayControlPressureLevel(50);
+    //tft.displayMenu("Auto", "Manual");
+    // tft.show();
 
-    MqttWifiManager mqttManager("TP-Link_A2FC", "nadimahmed", "192.168.0.210", 1883);
+/*    MqttWifiManager mqttManager("TP-Link_A2FC", "nadimahmed", "192.168.0.210", 1883);
 
     // Connect to WiFi
     if (mqttManager.connectWiFi()) {
@@ -133,89 +145,127 @@ int main() {
     } else {
         printf("Failed to subscribe to topic: %s\n", topicSUB);
     }*/
-    i2c_init(i2c1, 400*1000);
-    gpio_set_function(14, GPIO_FUNC_I2C);
-    gpio_set_function(15, GPIO_FUNC_I2C);
-    TFTDisplay tft( 14, 15, i2c1);
-    tft.displayKeyboard(0);
-    while (true) {
-        tft.selectChar(0);
-        sleep_ms(1000);
-        tft.selectChar(1);
-        sleep_ms(1000);
-        tft.selectChar(2);
-        sleep_ms(1000);
-        tft.selectChar(3);
-        sleep_ms(1000);
-        tft.selectChar(4);
-        sleep_ms(1000);
-        tft.selectChar(5);
-        sleep_ms(1000);
-        tft.selectChar(6);
-        sleep_ms(1000);
-        tft.selectChar(7);
-        sleep_ms(1000);
-        tft.selectChar(8);
-        sleep_ms(1000);
-        tft.selectChar(9);
-        sleep_ms(1000);
-        tft.selectChar(10);
-        sleep_ms(1000);
-        tft.selectChar(11);
-        sleep_ms(1000);
-        tft.selectChar(12);
-        sleep_ms(1000);
-        tft.selectChar(13);
-        sleep_ms(1000);
-        tft.selectChar(14);
-        sleep_ms(1000);
-        tft.selectChar(15);
-        sleep_ms(1000);
-        tft.selectChar(16);
-        sleep_ms(1000);
-        tft.selectChar(17);
-        sleep_ms(1000);
-        tft.selectChar(18);
-        sleep_ms(1000);
-        tft.selectChar(19);
-        sleep_ms(1000);
-        tft.selectChar(20);
-        sleep_ms(1000);
-        tft.selectChar(21);
-        sleep_ms(1000);
-        tft.selectChar(22);
-        sleep_ms(1000);
-        tft.selectChar(23);
-        sleep_ms(1000);
-        tft.selectChar(24);
-        sleep_ms(1000);
-        tft.selectChar(25);
-        sleep_ms(1000);
+    enum scrollmenu{
+        start,
+        menu,
+        automode,
+        menualmode,
+        connect,
+        read,
+        write,
+        display,
+        send
+    } scrollmenu = start;
 
+    int count = 0;
+    int count2 = 0;
+    int speed = 0;
+    //tft.welcomeScreen();
+    uint8_t  data[1] = {0xF1};
+    uint8_t  values[2] = {0};
+    int pressure = 0;
+    int co2 = 0;
+    int rh = 0;
+    int t = 0;
+    int fan = 0;
+    auto modbus_poll = make_timeout_time_ms(4000);
+    bool autoMode = false;
 
-        /*   for(int i = 0; i < 100; i++){
-               vent.writeSensor("fan", i*10);
-               sleep_ms(10);
-           }
-           for(int i = 100; i > 0; i--){
-               vent.writeSensor("fan", i*10);
-               sleep_ms(10);
-           }
-           // Wait for a message to be received
-          // mqttManager.yield(1000);
+    while(true) {
+        switch (scrollmenu) {
+            case start:
+                tft.welcomeScreen();
+                sleep_ms(2000);
+                tft.autoOrManual();
+                tft.selectmenu(1);
+                scrollmenu = menu;
+                break;
+            case menu:
+                if(rothandlerA.rotaryturned){
+                    rothandlerA.rotaryturned = false;
+                    if(rothandlerA.getCount() == 1){
+                        autoMode = true;
+                        tft.selectmenu(1);
+                    } else if(rothandlerA.getCount()== -1){
+                        tft.selectmenu(0);
+                        autoMode = false;
+                    }
+                }
+                if(rothandlerP.buttonPressed && autoMode){
+                    rothandlerP.buttonPressed = false;
+                    tft.fill(0);
+                    tft.displayControlSpeed(speed);
+                    scrollmenu = automode;
+                } else if(rothandlerP.buttonPressed && !autoMode){
+                    rothandlerP.buttonPressed = false;
+                    tft.fill(0);
+                    tft.displayControlSpeed(speed);
+                    scrollmenu = menualmode;
+                }
+                break;
+            case menualmode:
+                if(rothandlerA.rotaryturned){
+                    rothandlerA.rotaryturned = false;
+                    speed+=rothandlerA.getCount();
+                    if(speed > 100){
+                        speed = 100;
+                    } else if(speed < 0){
+                        speed = 0;
+                    }
+                    vent.writeSensor("fan", speed*10);
+                    sleep_ms(100);
+                    tft.displayControlSpeed(speed);
 
-          // read sensore data
-           int fan = vent.readSensor("fan");
-           int co2 = vent.readSensor("co2");
-           int t = vent.readSensor("t");
-           int rh = vent.readSensor("rh");
-           printf("Fan: %d\n", fan);
-           printf("CO2: %d\n", co2);
-           printf("Temperature: %d\n", t);
-           printf("Relative Humidity: %d\n", rh);
-           sleep_ms(2000);*/
+                }
+                if(rothandlerP.buttonPressed){
+                    rothandlerP.buttonPressed = false;
+                    tft.displayStatus(co2, t, rh, speed, pressure, wifi_signal);
+                    scrollmenu = read;
+                }
+                break;
+            case automode:
+                if(rothandlerA.rotaryturned){
+                    rothandlerA.rotaryturned = false;
+                    speed+=rothandlerA.getCount();
+                    if(speed > 100){
+                        speed = 100;
+                    } else if(speed < 0){
+                        speed = 0;
+                    }
+                    vent.writeSensor("fan", speed*10);
+                    sleep_ms(100);
+                    tft.displayControlSpeed(speed);
+                }
 
+            case read:
+                if(time_reached(modbus_poll)){
+                    modbus_poll = make_timeout_time_ms(4000);
+                    co2 = vent.readSensor("co2");
+                    rh = vent.readSensor("rh");
+                    t = vent.readSensor("t");
+                    fan = vent.readSensor("fan");
+                    i2c_write_blocking(i2c1, 64, data, 1, false);  // Send address
+                    sleep_ms(10);
+                    i2c_read_blocking(i2c1, 64, values, 2, false);  // Read values
+                    sleep_ms(100);
+                   tft.displayStatus(co2, t, rh, fan, pressure, wifi_signal);
+                   std::cout<< "co2: " << co2 << " t: " << t << " rh: " << rh << " fan: " << fan << " pressure: " << pressure << std::endl;
+                }
+                if(rothandlerP.buttonPressed){
+                    rothandlerP.buttonPressed = false;
+                    tft.fill(0);
+                    tft.autoOrManual();
+                    tft.selectmenu(1);
+                    scrollmenu = menu;
+                }
+                break;
+
+             default:
+                break;
+        }
     }
+
+
     return 0;
 }
 

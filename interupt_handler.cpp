@@ -1,35 +1,30 @@
+/*
 //
 // Created by Aleksi Merilainen on 1.3.2024.
 //
 #include "interupt_handler.h"
 
-InterruptHandler::InterruptHandler(uint8_t PinA0, uint8_t pinC0) {
-    setupPin(PinA0);
-    setupPin(pinC0);
-}
+//std::map<uint, InterruptHandler*> InterruptHandler::handlers = {};
+std::map<uint8_t, InterruptHandler*> InterruptHandler::interruptHandlers;
 void InterruptHandler::setupPin(uint8_t pin) {
     gpio_init(pin);
     gpio_set_dir(pin, GPIO_IN);
     gpio_pull_up(pin);
-    gpio_set_irq_enabled_with_callback(pin, GPIO_IRQ_EDGE_RISE, true, &callback);
+    gpio_set_irq_enabled_with_callback(pin, GPIO_IRQ_EDGE_FALL, true, &callback);
+    interruptHandlers[pin] = this; // store this instance in the map
 }
 
 void InterruptHandler::callback(uint gpio, uint32_t events) {
-    uint16_t time2 = time_us_32() - timestamp;
-    if (time2 > 6000) {
-        if (!gpio_get(11)){
-            count++;
-            std::cout << "Interrupt count: " << count << std::endl;
-        } else{
-            count --;
-           std::cout << "Interrupt count: " << count << std::endl;
-        }
-        timestamp = time_us_32();
-    }
+    InterruptHandler* handler = interruptHandlers[gpio]; // look up the instance
+    //uint16_t time2 = time_us_32() - handler->timestamp;
+    handler->count = 2; // set the count for this instance
+    handler->rotaryturned = true; // set the flag for this instance
 }
 uint16_t InterruptHandler::timestamp = time_us_64();
 int InterruptHandler::count = 0;
+bool InterruptHandler::rotaryturned = false;
+
 
 int InterruptHandler::getCount() {
     return count;
-}
+}*/
