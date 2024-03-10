@@ -55,12 +55,25 @@ add_executable(${PROJECT_NAME}
         interupt_handler.h
         ventilation.cpp
         ventilation.h
+        json.cpp
+        json.h
+        vent4.h
+        tftdisplay.cpp
+        tftdisplay.h
+        MqttWifiManager.cpp
+        MqttWifiManager.h
+        # vent1.h
+        #vent2.h
+        #vent3.cpp
+        #vent3.h
+        #main2.cpp
         #extra55.cpp
         #extra55.h
         # extra44.cpp
         #extra.cpp
        # extra2.cpp
 )
+
 
 # Create map/bin/hex/uf2 files
 pico_add_extra_outputs(${PROJECT_NAME})

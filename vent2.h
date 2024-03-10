@@ -33,19 +33,38 @@ public:
         registers[sensorName] = sensor;
     }
 
-    void writeSensor(const std::string& sensorName, int value){
-        registers[sensorName]->write(value);
-        sleep_ms(100);
-    }
-    int readSensor(const std::string& sensorName){
-        return registers[sensorName]->read();
-    }
-
-
-private:
     std::shared_ptr<PicoUart> uart;
     std::shared_ptr<ModbusClient> rtu_clients;
     std::map<std::string, std::shared_ptr<ModbusRegister>> registers;
+
+private:
+
 };
 
 #endif //VENTILATION_DEVICE_VENTILATION_H
+ /*  I2C_Display tft(14, 15, i2c1);
+
+*//* ModbusManager modbus1(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE);
+    modbus1.writeFan(500);
+    sleep_ms(100);*//*
+Ventilation vent(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE);
+vent.addSensor("fan",1, 0);
+vent.addSensor("Co2",240, 256);
+vent.registers["fan"]->write(1000);
+sleep_ms(100);
+
+while (true) {
+printf("Fan: %d\n", vent.registers["fan"]->read());
+printf("Co2: %d\n", vent.registers["Co2"]->read());
+
+sleep_ms(1000);
+*//* printf("Relative Humidity: %d\n", modbus1.readRelativeHumidity());
+ printf("Temperature: %d\n", modbus1.readTemperature());
+ printf("CO2: %d\n", modbus1.readCO2());
+ printf("Fan: %d\n", modbus1.readFan());
+ sleep_ms(5000);*//*
+}
+
+return 0;
+}
+ */

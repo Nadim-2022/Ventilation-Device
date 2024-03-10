@@ -3,8 +3,3 @@
 //
 
 #include "ventilation.h"
-/*
-void Ventilation::addSensor() {
-
-}
- */

@@ -15,12 +15,15 @@ public:
     void displayText(const char *text, const uint8_t *raspberry26x32);
     void welcomeScreen();
     void autoOrManual();
+    void loginscreen();
+    void keyboard();
+    void existinguser();
     void connecting();
     void displayMenu(const char *textA, const char *textB);
     void displayControlPressureLevel(uint16_t pressure);
     void displayControlSpeed(uint16_t speed);
-    void displayStatus(const int co2, const int temp, const int hum, const int fan, const int ap);
-    void displayWifiIcons(const uint8_t *wifi_icon);
+    void test(uint16_t letter);
+    void displayStatus(const int co2, const int temp, const int hum, const int fan, const int ap, const uint8_t *wifi_icon);
 
 
 private:

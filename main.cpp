@@ -11,9 +11,14 @@
 #include "MQTTClient.h"
 #include "ModbusClient.h"
 #include "ModbusRegister.h"
-#include "ssd1306.h"
+//#include "ssd1306.h"
+
+
 #include "ventilation.h"
 #include "i2c_display.h"
+#include "interupt_handler.h"
+#include "tftdisplay.h"
+//#include "MqttWifiManager.h"
 
 // We are using pins 0 and 1, but see the GPIO function select table in the
 // datasheet for information on which other pins can be used.
@@ -52,19 +57,25 @@ static const uint8_t raspberry26x32[] =
          0x7f, 0xff, 0xff, 0xff, 0xff, 0x7f, 0x7f, 0x3f,
          0x3f, 0x1f, 0x1f, 0xf, 0x7, 0x3, 0x0, 0x0 };
 #endif
+static const uint8_t wifi_signal[] =
+        {// font edit begin : monovlsb : 10 : 7
+                0x08, 0x04, 0x12, 0x09, 0x65, 0x65, 0x09, 0x12,
+                0x04, 0x08
+// font edit end
+        };
 
-void messageArrived(MQTT::MessageData &md) {
-    MQTT::Message &message = md.message;
-    char payload_str[message.payloadlen + 1];
-    memcpy(payload_str, message.payload, message.payloadlen);
-    payload_str[message.payloadlen] = '\0';
+static const uint8_t wifi_signal_broken[] =
+        {
+// font edit begin : monovlsb : 10 : 7
+                0x00, 0x00, 0x00, 0x00, 0x60, 0x60, 0x00, 0x00,
+                0x00, 0x00
+// font edit end
+        };
 
-    printf("Message arrived: qos %d, retained %d, dup %d, packetid %d\n",
-           message.qos, message.retained, message.dup, message.id);
-    printf("Payload %s\n",payload_str);
-}
 
-static const char *topic = "test-topic";
+
+static const char *topicSUB = "controller/settings";
+static const char *topicPUB = "controller/status";
 
 int main() {
     const uint led_pin = 22;
@@ -79,65 +90,71 @@ int main() {
     gpio_pull_up(button);
 
     stdio_init_all();
+   // I2C_Display tft(14, 15, i2c1);
+    Ventilation vent(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE);
+    vent.addSensor("fan", 1, 0);
+    vent.addSensor("co2", 240, 256);
+    vent.addSensor("t", 241, 257);
+    vent.addSensor("rh", 241, 256);
+    //vent.registers["fan"]->write(0);
+    vent.writeSensor("fan", 0);
+    sleep_ms(100);
+    /*//vent.writeSensor("fan", 82);
+    int count = 0;
+    i2c_init(i2c1, 400*1000);
+    gpio_set_function(14, GPIO_FUNC_I2C);
+    gpio_set_function(15, GPIO_FUNC_I2C);
+    TFTDisplay tft( 14, 15, i2c1);
+    tft.displayControlPressureLevel(50);
+   // tft.displayMenu("Auto", "Manual");
+   // tft.show();
 
-    printf("\nBoot\n");
-    I2C_Display tft(14, 15, i2c1);
-    auto uart{std::make_shared<PicoUart>(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE)};
-    auto rtu_client{std::make_shared<ModbusClient>(uart)};
-    ModbusRegister relativeHumidity(rtu_client, 241, 256);
-    ModbusRegister temperature(rtu_client, 241, 257);
-    ModbusRegister co2(rtu_client, 240, 256);
-    ModbusRegister fan(rtu_client, 1, 0);
-    auto modbus_poll = make_timeout_time_ms(3000);
-    sleep_ms((100));
-    fan.write(0);
-    sleep_ms((100));
+    MqttWifiManager mqttManager("TP-Link_A2FC", "nadimahmed", "192.168.0.210", 1883);
 
-    uint8_t  cmd[1] = {0xF1};
-    uint8_t  values[2] = {0};
-    uint16_t  show = 0;
-
-    //Connect to the wifi and mqtt
-    IPStack ipstack("Nadim", "nadimahmed");
-    auto client = MQTT::Client<IPStack, Countdown>(ipstack);
-
-    int rc = ipstack.connect("172.20.10.3", 1883);
-    if (rc != 1) {
-        printf("rc from TCP connect is %d\n", rc);
+    // Connect to WiFi
+    if (mqttManager.connectWiFi()) {
+        printf("Connected to WiFi\n");
+    } else {
+        printf("Failed to connect to WiFi\n");
     }
 
-    printf("MQTT connecting\n");
-    MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
-    data.MQTTVersion = 3;
-    data.clientID.cstring = (char *) "PicoW-sample";
-    rc = client.connect(data);
-    if (rc != 0) {
-        printf("rc from MQTT connect is %d\n", rc);
-        while (true) {
-            tight_loop_contents();
-        }
+    // Connect to MQTT broker
+    if (mqttManager.connectMQTT()) {
+        printf("Connected to MQTT broker\n");
+    } else {
+        printf("Failed to connect to MQTT broker\n");
     }
-    printf("MQTT connected\n");
-    rc = client.subscribe(topic, MQTT::QOS2, messageArrived);
-    if (rc != 0) {
-        printf("rc from MQTT subscribe is %d\n", rc);
-    }
-    printf("MQTT subscribed\n");
 
-    while (true){
-        if (time_reached(modbus_poll)) {
-            gpio_put(led_pin, !gpio_get(led_pin)); // toggle  led
-            modbus_poll = delayed_by_ms(modbus_poll, 5000);
-            i2c_write_blocking(i2c1, 64, cmd, 1, false);  // Send address
+    // Subscribe to a topic
+    if (mqttManager.subscribe(topicSUB, MQTT::QOS1)) {
+        printf("Subscribed to topic: %s\n", topicSUB);
+    } else {
+        printf("Failed to subscribe to topic: %s\n", topicSUB);
+    }*/
+
+    //tft.welcomeScreen();
+    while (true) {
+     /*   for(int i = 0; i < 100; i++){
+            vent.writeSensor("fan", i*10);
             sleep_ms(10);
-            i2c_read_blocking(i2c1, 64, values, 2, false);  // Read values
-            sleep_ms(10);
-            show =( (values[0] << 8) | values[1]) /240;
-            tft.displayStatus(co2.read(), temperature.read()/10, relativeHumidity.read()/10, fan.read(), show);
-            printf("CO2: %d ppm, Temperature: %d C, Humidity: %d %%RH, Pressure: %d Pa, Fan Speed: %d %%\n",co2.read(), temperature.read()/10, relativeHumidity.read()/10, show, fan.read());
-            //printf("CO2: %d ppm\n",co2.read());
         }
+        for(int i = 100; i > 0; i--){
+            vent.writeSensor("fan", i*10);
+            sleep_ms(10);
+        }
+        // Wait for a message to be received
+       // mqttManager.yield(1000);
 
+       // read sensore data
+        int fan = vent.readSensor("fan");
+        int co2 = vent.readSensor("co2");
+        int t = vent.readSensor("t");
+        int rh = vent.readSensor("rh");
+        printf("Fan: %d\n", fan);
+        printf("CO2: %d\n", co2);
+        printf("Temperature: %d\n", t);
+        printf("Relative Humidity: %d\n", rh);
+        sleep_ms(2000);*/
 
     }
     return 0;
