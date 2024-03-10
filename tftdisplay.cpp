@@ -81,3 +81,22 @@ void TFTDisplay::selectmenu(int selection) {
     }
     show();
 }
+void TFTDisplay::displayStatus(const int co2, const int temp, const int hum, const int fan, const int AP, const uint8_t *wifi_icon) {
+    mono_vlsb wifi_sig(wifi_icon, 10, 7);
+    std::string fs = "FS  : " + std::to_string(fan) + " %";
+    std::string ap = "AP  : " + std::to_string(AP) + " Pa";
+    std::string Co2 = "Co2 : " + std::to_string(co2) + " ppm";
+    std::string tmp = "Temp: " + std::to_string(temp) + " C";
+    std::string rh = "RH  : " + std::to_string(hum) + " g/kG";
+
+    fill(0);
+    text("Status", 0, 0);
+    line(0, 10, 128, 10, 1);
+    text(Co2, 0, 13);
+    text(rh, 0, 24);
+    text(tmp, 0, 35);
+    text(fs, 0, 46);
+    text(ap, 0, 57);
+    blit(wifi_sig, 114, 0);
+    show();
+}

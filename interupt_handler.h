@@ -20,9 +20,10 @@ private:
 
 public:
     int getCount();
-    InterruptHandler(uint8_t PinA0, uint8_t pinC0);
+    explicit InterruptHandler(uint8_t PinA);
     void setupPin(uint8_t pin);
     static int count;
+    static bool rotaryturned;
 };
 
 #endif //VENTILATION_CONTROLLER_PROJECT_INTERUPT_HANDLER_H

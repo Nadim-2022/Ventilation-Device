@@ -22,9 +22,10 @@ public:
     void loginscreen();
     void connectTowifi();
     void selectmenu(int selection);
+    void displayStatus(const int co2, const int temp, const int hum, const int fan, const int AP, const uint8_t *wifi_icon);
 
 
-private:
+        private:
    uint16_t width;
 };
 
