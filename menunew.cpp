@@ -11,6 +11,7 @@ void InterruptHandler::setupPin(uint8_t pin) {
     gpio_set_dir(pin, GPIO_IN);
     gpio_pull_up(pin);
     gpio_set_irq_enabled_with_callback(pin, GPIO_IRQ_EDGE_FALL, true, &callback);
+
 }
 
 void InterruptHandler::callback(uint gpio, uint32_t events) {
@@ -46,7 +47,7 @@ void InterruptHandler::callback(uint gpio, uint32_t events) {
         timestamp = time_us_32();
     }*/
 }
-uint16_t InterruptHandler::timestamp = time_us_64();
+uint16_t InterruptHandler::timestamp = time_us_32();
 int InterruptHandler::count = 0;
 bool InterruptHandler::rotaryturned = false;
 

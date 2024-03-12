@@ -33,16 +33,28 @@ public:
         registers[sensorName] = sensor;
     }
 
-    void writeSensor(const std::string& sensorName, int value){
+    void writeSensor(const std::string& sensorName, double value){
         registers[sensorName]->write(value);
-        sleep_ms(100);
+        sleep_ms(200);
     }
     int readSensor(const std::string& sensorName){
         return registers[sensorName]->read();
     }
 
+    int readPressure(){
+        i2c_write_blocking(i2c1, 64, data, 1, false);  // Send address
+        sleep_ms(10);
+        i2c_read_blocking(i2c1, 64, values, 2, false);  // Read values
+        sleep_ms(100);
+        pressure = ( (values[0] << 8) | values[1]) /240 *0.95;
+        pressure = (pressure <= 0) ? 0 : (pressure >= 125) ? 125 : pressure;
+        return pressure;
+    }
 
 private:
+    int pressure;
+    uint8_t  data[1] = {0xF1};
+    uint8_t  values[2] = {0};
     std::shared_ptr<PicoUart> uart;
     std::shared_ptr<ModbusClient> rtu_clients;
     std::map<std::string, std::shared_ptr<ModbusRegister>> registers;

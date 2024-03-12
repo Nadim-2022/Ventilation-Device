@@ -43,7 +43,7 @@ PicoUart::PicoUart(int uart_nr, int tx_pin, int rx_pin, int speed, int tx_size, 
 
     // Set up our UART with the required speed.
     uart_init(uart, speed);
-    //uart_set_format(uart, 8, 2, UART_PARITY_NONE);
+    uart_set_format(uart, 8, 2, UART_PARITY_NONE);
 
     // Set the TX and RX pins by using the function select on the GPIO
     // See datasheet for more information on function select

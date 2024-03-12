@@ -28,7 +28,6 @@ private:
     static char mqtt_payload[256]; // Assuming a maximum payload size of 256 characters
     static bool automatic;
     static int sami;
-
 public:
     MqttWifiManager(const char* ssid, const char* password, const char* mqttBrokerAddress, int mqttBrokerPort)
             : ssid_(ssid), password_(password), mqttBrokerAddress_(mqttBrokerAddress), mqttBrokerPort_(mqttBrokerPort),
@@ -37,7 +36,12 @@ public:
     bool connectWiFi() {
         return ipstack_.connect(mqttBrokerAddress_, mqttBrokerPort_)== 1;
     }
-
+    int getvalue(){
+        return sami;
+    }
+    bool isAutomatic(){
+        return automatic;
+    }
     bool connectMQTT() {
         MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
         data.MQTTVersion = 3;
