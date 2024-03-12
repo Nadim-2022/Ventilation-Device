@@ -318,29 +318,43 @@ int main() {
                     t = vent.readSensor("t") / 10;
                     fan = vent.readSensor("fan") / 10;
                     pressure = vent.readPressure();
-                    /*i2c_write_blocking(i2c1, 64, data, 1, false);  // Send address
-                    sleep_ms(10);
-                    i2c_read_blocking(i2c1, 64, values, 2, false);  // Read values
-                    sleep_ms(100);
-                    pressure = ( (values[0] << 8) | values[1]) /240 *0.95;*/
                     tft.displayStatus(co2, t, rh, fan, pressure, wifi_signal);
                     std::cout << "co2: " << co2 << " t: " << t << " rh: " << rh << " fan: " << fan << " pressure: "
                               << pressure << std::endl;
                     //buf[256] =  R"({"nr": +nr+"speed": %d,"setpoint": %d,"pressure": %d,"auto": %s,"error": %s,"co2": %d,"rh": %d,"temp": %d})";
+                    /*    sprintf(buf, "\n{\n"
+                                     "\"nr\": %d, \n"
+                                     "\"speed\": %d, \n"
+                                     "\"setpoint\": %d; \n"
+                                     "\"pressure\": 5\n"
+                                     "\"auto\": %s\n"
+                                     "\"error\": false, \n"
+                                     "\"co2\": 300, \n"
+                                     "\"rh\": 37, \n"
+                                     "\"temp\": 20\n"
+                                     "}\n", ++msg_count, fan, setPressure, autoMode, error, co2, rh, t);
+                                }
+                    //mqttManager.publish(topicPUB,buf,MQTT::QOS0);
+                    std::cout << buf << std::endl;*/
+                   /* const char *autoModeStr = autoMode ? "true" : "false";
+                    const char *errorStr = error ? "true" : "false";
                     sprintf(buf, "\n{\n"
                                  "\"nr\": %d, \n"
                                  "\"speed\": %d, \n"
-                                 "\"setpoint\": %d; \n"
-                                 "\"pressure\": 5\n"
-                                 "\"auto\": %s\n"
-                                 "\"error\": false, \n"
-                                 "\"co2\": 300, \n"
-                                 "\"rh\": 37, \n"
-                                 "\"temp\": 20\n"
-                                 "}\n", ++msg_count, fan, setPressure, autoMode, error, co2, rh, t);
-                            }
-                mqttManager.publish(topicPUB,buf,MQTT::QOS0);
-                std::cout << buf << std::endl;
+                                 "\"setpoint\": %d, \n"
+                                 "\"pressure\": %d, \n"
+                                 "\"auto\": %s, \n"
+                                 "\"error\": %s, \n"
+                                 "\"co2\": %d, \n"
+                                 "\"rh\": %d, \n"
+                                 "\"temp\": %d\n"
+                                 "}\n", ++msg_count, fan, setPressure, pressure, autoModeStr, errorStr, co2, rh, t);
+*/
+                    sprintf(buf, R"({"nr": %d, "speed": %d, "setpoint": %d, "pressure": %d, "auto": %s})",
+                            ++msg_count, (int)fan, (int)setPressure, pressure, autoMode ? "true" : "false");
+                    mqttManager.publish(topicPUB,buf,MQTT::QOS0);
+                    std::cout << buf << std::endl;
+                }
                 if(rothandlerP.buttonPressed){
                     rothandlerP.buttonPressed = false;
                     tft.fill(0);

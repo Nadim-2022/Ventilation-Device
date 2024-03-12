@@ -33,7 +33,7 @@ public:
         registers[sensorName] = sensor;
     }
 
-    void writeSensor(const std::string& sensorName, double value){
+    void writeSensor(const std::string& sensorName, int value){
         registers[sensorName]->write(value);
         sleep_ms(200);
     }
