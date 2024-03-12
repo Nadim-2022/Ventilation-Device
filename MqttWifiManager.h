@@ -27,7 +27,8 @@ private:
 
     static char mqtt_payload[256]; // Assuming a maximum payload size of 256 characters
     static bool automatic;
-    static int sami;
+    static bool notification;
+    static int MqttValue;
 public:
     MqttWifiManager(const char* ssid, const char* password, const char* mqttBrokerAddress, int mqttBrokerPort)
             : ssid_(ssid), password_(password), mqttBrokerAddress_(mqttBrokerAddress), mqttBrokerPort_(mqttBrokerPort),
@@ -37,7 +38,7 @@ public:
         return ipstack_.connect(mqttBrokerAddress_, mqttBrokerPort_)== 1;
     }
     int getvalue(){
-        return sami;
+        return MqttValue;
     }
     bool isAutomatic(){
         return automatic;
@@ -76,17 +77,25 @@ public:
 
         // Search for "pressure" in the payload
         const char* pressure_key = "\"pressure\":";
+        const char* speed_key = "\"speed\":";
         char* pressure_pos = strstr(payload_str, pressure_key);
+        char* speed_pos = strstr(payload_str, speed_key);
 
         if (pressure_pos != nullptr) {
-            // Extract the value of "pressure"
             int pressure;
             sscanf(pressure_pos + strlen(pressure_key), "%d", &pressure);
             printf("Pressure: %d\n", pressure);
-            sami = pressure;
-        } else {
-            printf("Payload does not contain 'pressure' field\n");
-        }
+            MqttValue = pressure;
+        } else if (speed_pos != nullptr) {
+            int speed;
+            sscanf(speed_pos + strlen(speed_key), "%d", &speed);
+            printf("Speed: %d\n", speed);
+            MqttValue = speed;
+        }else {
+                printf("Payload does not contain 'pressure' field\n");
+            }
+
+        notification = true;
     }
 
     bool subscribe(const char* topic, MQTT::QoS qos) {
@@ -99,7 +108,7 @@ public:
         msg.retained = false;
         msg.dup = false;
         msg.payload = (void*)message;
-        msg.payloadlen = strlen(message)+1;
+        msg.payloadlen = strlen(message);
 
         return mqttClient_.publish(topic, msg) == 0;
     }
@@ -110,6 +119,12 @@ public:
 
     bool isConnected() {
         return mqttClient_.isConnected();
+    }
+    bool isNotification() {
+        return notification;
+    }
+    void setNotification(bool value) {
+        notification = value;
     }
 };
 

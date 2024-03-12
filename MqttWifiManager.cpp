@@ -5,4 +5,5 @@
 #include "MqttWifiManager.h"
 char MqttWifiManager::mqtt_payload[256] = {0};
 bool MqttWifiManager::automatic = false;
-int MqttWifiManager::sami = 0;
+bool MqttWifiManager::notification = false;
+int MqttWifiManager::MqttValue = 0;
