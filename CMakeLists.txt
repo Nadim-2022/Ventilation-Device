@@ -62,6 +62,8 @@ add_executable(${PROJECT_NAME}
         tftdisplay.h
         MqttWifiManager.cpp
         MqttWifiManager.h
+        #newtrashfile.cpp
+        #itsmenu.cpp
         #menunew.cpp
         # vent1.h
         #vent2.h

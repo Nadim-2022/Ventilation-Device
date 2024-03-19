@@ -11,9 +11,6 @@
 #include <iostream>
 #include <map>
 
-
-#include <map>
-
 class InterruptHandler {
 public:
     InterruptHandler(uint8_t PinA);

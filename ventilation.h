@@ -35,7 +35,7 @@ public:
 
     void writeSensor(const std::string& sensorName, int value){
         registers[sensorName]->write(value);
-        sleep_ms(200);
+        sleep_ms(10);
     }
     int readSensor(const std::string& sensorName){
         return registers[sensorName]->read();

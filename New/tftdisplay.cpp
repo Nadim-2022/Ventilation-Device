@@ -62,7 +62,7 @@ void TFTDisplay::mainMenu() {
     show();
 }
 
-void TFTDisplay::connectTowifi() {
+void TFTDisplay::wifiandmqttmenu() {
     fill(0);
     text("Connect", 0, 15);
     text("New Credentials", 0, 30);
@@ -72,7 +72,7 @@ void TFTDisplay::connectTowifi() {
 // Now we have to implement the selectmenu function for 4 menu items
 // The function should highlight the selected menu item
 
-void TFTDisplay::selectWifimenu(int selection) {
+void TFTDisplay::selectwifiandmqttmenu(int selection) {
     if(selection == 0){
         rect(0, 11, 128, 15, 1);
         rect(0, 26, 128, 15, 0);
@@ -325,8 +325,8 @@ void TFTDisplay::displayKeyboard(int number) {
 }
 void TFTDisplay::credenttialsMenu() {
     fill(0);
-    text("Wifi Credentials", 0, 15);
-    text("MQTT Credentials", 0, 30);
+    text("Wifi CredentialsMenu", 0, 15);
+    text("MQTT CredentialsMenu", 0, 30);
     text("Return", 0,45 );
     show();
 }

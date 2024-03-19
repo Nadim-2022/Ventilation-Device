@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <cmath>
+#include <vector>
+#include <algorithm>
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include "hardware/timer.h"
@@ -37,7 +39,7 @@
 //#define STOP_BITS 2 // for real system
 
 //#define USE_MODBUS
-#define USE_MQTT
+//#define USE_MQTT
 //#define USE_SSD1306
 
 
@@ -122,7 +124,7 @@ int main() {
     //tft.displayMenu("Auto", "Manual");
     // tft.show();
 
-    MqttWifiManager mqttManager("Nadim", "nadimahmed", "172.20.10.5", 1883);
+   MqttWifiManager mqttManager("SmartIotMQTT", "SmartIot", "192.168.1.10", 1883);
 
     // Connect to WiFi
     if (mqttManager.connectWiFi()) {
@@ -144,43 +146,101 @@ int main() {
     } else {
         printf("Failed to subscribe to topic: %s\n", topicSUB);
     }
-    enum scrollmenu{
-        start,
-        menu,
-        automode,
-        controlautomode,
-        manualmode,
-        connect,
-        read,
-        write,
-        display,
-        send
-    } scrollmenu = start;
 
-    int count = 0;
-    int count2 = 0;
+    enum key{
+        up,
+        down,
+        left,
+        right,
+        enter
+    } key = up;
+
+    int MainMenucount = 0;
+    int SubMenucount = 0;
     int speed = 0;
     //tft.welcomeScreen();
     uint8_t  data[1] = {0xF1};
     uint8_t  values[2] = {0};
-    int pressure = 0;
+    int sensorPressure = 0;
     int co2 = 0;
     int rh = 0;
     int t = 0;
     int fan = 0;
     auto modbus_poll = make_timeout_time_ms(4000);
-    auto pressure_poll = make_timeout_time_ms(1000);
+    auto pressure_poll = make_timeout_time_ms(3000);
     bool autoMode = false;
     int setPressure = 0;
-    int pressure0 = 0;
+    int currentPressure = 0;
     int tempPressure = 0;
     char buf[256];
     int msg_count=0;
     bool error = false;
     int MqttValue = 0;
     auto mqttSendTime = make_timeout_time_ms(2000);
+    int scroll = 0;
+    // Arry of capital letters
+    std::array<char, 26> alphabet = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+    std::array<char, 26> lowercase_alphabet = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+    std::array<char, 36> special_chars_numbers = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                                                  '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
+                                                  '-', '_', '=', '+', '[', ']', '{', '}', ';', ':',
+                                                  '\'', '\"', ',', '.', '<', '>'};
+    std::vector<char> ssid;
+    std::vector<char> finalssid;
+    std::vector<char> password;
+    std::vector<char> ip;
+    std::vector<char> port;
+    std:: string SSID;
+    char alepa[26];
+    int smallchar = 97;
+    int smallcharend = 122;
+    int printSpy = 0;
+    int positionX = 6;
+    enum keyboard{
+        capital = 0,
+        small = 1,
+        number = 2
+    } keyboard = capital;
+    int maxScroll = 0;
+    char ssid2[25];
+    char password2[25];
+    char ip2[25];
+    char port2[25];
+
+    int wifimenucount = 0;
+    enum scrollmenu{
+        start,
+        menu,
+        setpressureMode,
+        /*automode,*/
+        setspeedMode,
+        controlautomode,
+        /*manualmode,*/
+        connect,
+       /* read,*/
+        statusMode,
+        writeMode,
+        /*display,*/
+        MQTTsend,
+        connectTowifi,
+        enterCredentials,
+        enterIDpass,
+        CredentialsMenu
+    } scrollmenu = start;
+    bool ssidEntered = false;
+    bool passwordEntered = false;
+    bool ipEntered = false;
+    bool portEntered = false;
+    bool isSSID = false;
+    bool isMqtt = false;
+    int currentAirPressure = 0;
+    int pressurecounter = 0;
+    bool errorflag = false;
+    std::vector<int> pvalues;
+
 
     while(true) {
+
         if(mqttManager.isNotification()){
             mqttManager.setNotification(false);
             std::cout << "Automatic mode" << std::endl;
@@ -191,179 +251,479 @@ int main() {
             } else {
                 speed = mqttManager.getvalue();
                 vent.writeSensor("fan", speed*10);
-                scrollmenu = read;
+                scrollmenu = statusMode;
             }
-            tft.displayStatus(co2, t, rh, fan, pressure, wifi_signal);
+            tft.displayStatus(co2, t, rh, fan, currentPressure, wifi_signal);
         }
         switch (scrollmenu) {
-            case start:
+            case start: // start screen
                 tft.welcomeScreen();
                 sleep_ms(1000);
-                tft.autoOrManual();
-                tft.selectmenu(1);
+                tft.mainMenu();
+                tft.selectmenu(0);
                 scrollmenu = menu;
                 break;
-            case menu:
-                if(rothandlerA.rotaryturned){
+            case menu: // main menu
+                if (rothandlerA.rotaryturned) {
                     rothandlerA.rotaryturned = false;
-                    if(rothandlerA.getCount() == 1){
-                        autoMode = true;
-                        tft.selectmenu(1);
-                    } else if(rothandlerA.getCount()== -1){
-                        autoMode = false;
-                        tft.selectmenu(0);
-                        //autoMode = false;
+                    MainMenucount += rothandlerA.getCount();
+                    if (MainMenucount > 3) {
+                        MainMenucount = 0;
+                    } else if (MainMenucount < 0) {
+                        MainMenucount = 3;
                     }
+
+                    tft.selectmenu(MainMenucount);
                 }
-                if(rothandlerP.buttonPressed && autoMode){
+                if (MainMenucount == 0 && rothandlerP.buttonPressed) {
                     rothandlerP.buttonPressed = false;
-                    tft.fill(0);
-                    tft.displayControlPressureLevel(pressure);
-                    scrollmenu = automode;
-                } else if(rothandlerP.buttonPressed && !autoMode){
-                    rothandlerP.buttonPressed = false;
-                    tft.fill(0);
                     tft.displayControlSpeed(speed);
-                    scrollmenu = manualmode;
+                    scrollmenu = setspeedMode;
+                } else if (MainMenucount == 1 && rothandlerP.buttonPressed) {
+                    rothandlerP.buttonPressed = false;
+                    tft.displayControlPressureLevel(setPressure);
+                    scrollmenu = setpressureMode;
+                    rothandlerP.buttonPressed = false;
+                } else if (MainMenucount == 2 && rothandlerP.buttonPressed) {
+                    rothandlerP.buttonPressed = false;
+                    tft.connectTowifi();
+                    tft.selectWifimenu(0);
+                    scrollmenu = connect;
+                } else if (MainMenucount == 3 && rothandlerP.buttonPressed) {
+                    rothandlerP.buttonPressed = false;
+                    scrollmenu = statusMode;
                 }
                 break;
-            case manualmode:
-                if(rothandlerA.rotaryturned){
+            case setspeedMode: // manual mode for setting fan speed
+                if (rothandlerA.rotaryturned) {
                     rothandlerA.rotaryturned = false;
-                    speed+=rothandlerA.getCount();
-                    if(speed >= 100){
+                    speed += rothandlerA.getCount();
+                    if (speed >= 100) {
                         speed = 100;
-                    } else if(speed <= 0){
+                    } else if (speed <= 0) {
                         speed = 0;
                     }
-                    vent.writeSensor("fan", speed*10);
-                    sleep_ms(10);
+                    vent.writeSensor("fan", speed * 10);
                     tft.displayControlSpeed(speed);
-
                 }
-                if(rothandlerP.buttonPressed){
+                if (rothandlerP.buttonPressed) {
                     rothandlerP.buttonPressed = false;
-                    tft.displayStatus(co2, t, rh, speed, pressure, wifi_signal);
-                    scrollmenu = read;
+                    tft.displayStatus(co2, t, rh, speed, setPressure, wifi_signal);
+                    scrollmenu = statusMode;
                 }
 
                 break;
-            case automode:
-                if(rothandlerA.rotaryturned){
-                    std::cout << "turned" << std::endl;
+            case setpressureMode:
+                if (rothandlerA.rotaryturned) {
+                    // std::cout << "turned" << std::endl;
                     rothandlerA.rotaryturned = false;
-                   setPressure+=rothandlerA.getCount()*2;
-                    if(setPressure > 125){
+                    setPressure += rothandlerA.getCount();
+                    if (setPressure > 125) {
                         setPressure = 125;
-                    } else if(setPressure < 0){
+                    } else if (setPressure < 0) {
                         setPressure = 0;
                     }
-                   // vent.writeSensor("fan", speed*10);
+                    // vent.writeSensor("fan", speed*10);
                     //sleep_ms(100);
                     tft.displayControlPressureLevel(setPressure);
                 }
-                if(rothandlerP.buttonPressed ){
+                if (rothandlerP.buttonPressed) {
                     rothandlerP.buttonPressed = false;
                     //vent.writeSensor("fan", setPressure*0.8*10);
-                    tft.displayStatus(co2, t, rh, speed, pressure, wifi_signal);
+                    tft.displayStatus(co2, t, rh, speed, setPressure, wifi_signal);
+                    currentAirPressure = vent.readPressure();
                     scrollmenu = controlautomode;
                 }
 
                 break;
 
             case controlautomode:
-               // pressure0 = 0;
-                if(pressure0 > 125){
-                    pressure0 = 125;
+                // currentPressure = 0;
+                if (currentPressure > 125) {
+                    currentPressure = 125;
                 }
                 co2 = vent.readSensor("co2");
-                rh = vent.readSensor("rh")/10;
-                t = vent.readSensor("t")/10;
-                fan = vent.readSensor("fan")/10;
-               // pressure0 = (vent.readPressure() >= 125) ? 0 : vent.readPressure();
-                if (pressure0 != setPressure) {
-                    if (pressure0 >= setPressure) {
-                        std::cout << "Pressure: " << pressure0 << " SetPressure: " << setPressure << std::endl;
-                        //tempPressure = pressure0 - setPressure;
+                rh = vent.readSensor("rh") / 10;
+                t = vent.readSensor("t") / 10;
+                fan = vent.readSensor("fan") / 10;
+                // currentPressure = (vent.readPressure() >= 125) ? 0 : vent.readPressure();
+                if (currentPressure != setPressure) {
+                    if (currentPressure >= setPressure) {
+                        std::cout << "Pressure: " << currentPressure << " SetPressure: " << setPressure << std::endl;
                         speed -= 1;
                         if (speed <= 0) {
                             speed = 0;
                         }
                         vent.writeSensor("fan", (speed * 10));
-                    } else if (pressure0 <= setPressure) {
-                        std::cout << "Pressure: " << pressure0 << " SetPressure: " << setPressure << "  " << speed
+                    } else if (currentPressure <= setPressure) {
+                        std::cout << "Pressure: " << currentPressure << " SetPressure: " << setPressure << "  " << speed
                                   << std::endl;
                         speed += 1;
                         if (speed >= 100) {
                             speed = 100;
                         }
-                        //tempPressure = setPressure - pressure0;
+                        //tempPressure = setPressure - currentPressure;
                         vent.writeSensor("fan", (speed * 10));
                     }
 
                 }
+
+               /* if (currentPressure != setPressure) {
+                    if (currentPressure >= setPressure) {
+                        std::cout << "Pressure: " << currentPressure << " SetPressure: " << setPressure << std::endl;
+                        speed -= 1;
+                        if (speed <= 0) {
+                            speed = 0;
+                        }
+                        vent.writeSensor("fan", (speed * 10));
+                    } else if (currentPressure <= setPressure) {
+                        std::cout << "Pressure: " << currentPressure << " SetPressure: " << setPressure << "  " << speed
+                                  << std::endl;
+                        speed += 1;
+                        if (speed >= 100) {
+                            speed = 100;
+                        }
+                        //tempPressure = setPressure - currentPressure;
+                        vent.writeSensor("fan", (speed * 10));
+                    }
+
+                }*/
                 if (time_reached(mqttSendTime)) {
                     mqttSendTime = delayed_by_ms(mqttSendTime, 2000);
                     sprintf(buf, R"({"nr": %d, "speed": %d, "setpoint": %d, "pressure": %d, "auto": %s, "error": %s, "co2": %d, "rh": %d, "temp": %d})",
-                            ++msg_count, (int)fan, (int)setPressure, pressure0, autoMode ? "true" : "false", error ? "true" : "false", co2, rh, t);
+                            ++msg_count, (int)fan, (int)setPressure, currentPressure, autoMode ? "true" : "false", errorflag ? "true" : "false", co2, rh, t);
                     mqttManager.publish(topicPUB, buf, MQTT::QOS0);
                     std::cout << buf << std::endl;
                 }
-                if (time_reached(pressure_poll)){
-                    pressure0 = (vent.readPressure() >= 125) ? 0 : vent.readPressure();
-                    pressure_poll = delayed_by_ms(pressure_poll,50);
-                    tft.displayStatus(co2, t, rh, fan, pressure0, wifi_signal);
+                if (time_reached(pressure_poll)) {
+                    sensorPressure = (vent.readPressure() >= 125) ? 0 : vent.readPressure();
+                    pressure_poll = delayed_by_ms(pressure_poll, 50);
+                    tft.displayStatus(co2, t, rh, fan, sensorPressure, wifi_signal);
+                    //pvalues.push_back(sensorPressure);
+                    //take the median of the last 5 values
+                       /* tft.displayStatus(co2, t, rh, fan, sensorPressure, wifi_signal);
+                        if (sensorPressure < setPressure) {
+                            pressurecounter++;
+                            if (pressurecounter > 25) {
+                                errorflag = true;
+                                vent.writeSensor("fan", 0);
+                                tft.errorScreen();
+                                sleep_ms(2000);
+                                scrollmenu = statusMode;
+                                pressurecounter = 0;
+                            }
+                        } else {
+                            pressurecounter--;
+                            if (pressurecounter < 0) {
+                                pressurecounter = 0;
+                                errorflag = false;
+                            }
+                        }*/
+
                 }
-                if(rothandlerP.buttonPressed){
+                /*if (time_reached(pressure_poll)) {
+                    sensorPressure = (vent.readPressure() >= 125) ? 0 : vent.readPressure();
+                    pressure_poll = delayed_by_ms(pressure_poll, 50);
+                    pvalues.push_back(sensorPressure);
+                    //take the median of the last 5 values
+                    if (pvalues.size() > 5) {
+                        std::sort(pvalues.begin(), pvalues.end());
+                        currentPressure = pvalues[pvalues.size() / 2];
+                        pvalues.clear();
+                        tft.displayStatus(co2, t, rh, fan, sensorPressure, wifi_signal);
+                        if (sensorPressure < setPressure) {
+                            pressurecounter++;
+                            if (pressurecounter > 25) {
+                                errorflag = true;
+                                vent.writeSensor("fan", 0);
+                                tft.errorScreen();
+                                sleep_ms(2000);
+                                scrollmenu = statusMode;
+                                pressurecounter = 0;
+                            }
+                        } else {
+                            pressurecounter--;
+                            if (pressurecounter < 0) {
+                                pressurecounter = 0;
+                                errorflag = false;
+                            }
+                        }
+                    }
+
+                }*/
+
+                if (rothandlerP.buttonPressed) {
                     rothandlerP.buttonPressed = false;
                     tft.fill(0);
-                    tft.autoOrManual();
+                    tft.mainMenu();
                     tft.selectmenu(1);
                     scrollmenu = menu;
                 }
                 //scrollmenu = read;
                 break;
 
-            case read:
-                if(time_reached(modbus_poll)) {
-                    /* std::cout << "Reading" << mqttManager.getvalue()<<std::endl;*/
+            case statusMode:
+                if (time_reached(modbus_poll)) {
+                    // std::cout << "Reading" << mqttManager.getvalue()<<std::endl;
                     // vent.writeSensor("fan", 60*10);
                     modbus_poll = make_timeout_time_ms(4000);
                     co2 = vent.readSensor("co2");
-                    rh = vent.readSensor("rh") / 10;
-                    t = vent.readSensor("t") / 10;
-                    fan = vent.readSensor("fan") / 10;
-                    pressure = vent.readPressure();
-                    /*i2c_write_blocking(i2c1, 64, data, 1, false);  // Send address
                     sleep_ms(10);
-                    i2c_read_blocking(i2c1, 64, values, 2, false);  // Read values
-                    sleep_ms(100);
-                    pressure = ( (values[0] << 8) | values[1]) /240 *0.95;*/
-                    tft.displayStatus(co2, t, rh, fan, pressure, wifi_signal);
-                    std::cout << "co2: " << co2 << " t: " << t << " rh: " << rh << " fan: " << fan << " pressure: "
-                              << pressure << std::endl;
-                    sprintf(buf, R"({"nr": %d, "speed": %d, "setpoint": %d, "pressure": %d, "auto": %s, "error": %s, "co2": %d, "rh": %d, "temp": %d})",
-                            ++msg_count, (int)fan, (int)setPressure, pressure, autoMode ? "true" : "false", error ? "true" : "false", co2, rh, t);
+                    rh = vent.readSensor("rh") / 10;
+                    sleep_ms(10);
+                    t = vent.readSensor("t") / 10;
+                    sleep_ms(10);
+                    fan = vent.readSensor("fan") / 10;
+                    sleep_ms(10);
+                    sensorPressure = vent.readPressure();
+                    tft.displayStatus(co2, t, rh, fan, sensorPressure, wifi_signal);
+
+                    sprintf(buf,
+                            R"({"nr": %d, "speed": %d, "setpoint": %d, "pressure": %d, "auto": %s, "error": %s, "co2": %d, "rh": %d, "temp": %d})",
+                            ++msg_count, (int) fan, (int) setPressure, sensorPressure, autoMode ? "true" : "false",
+                            errorflag ? "true" : "false", co2, rh, t);
                     //buf[strlen(buf)] = '\0';
-                    mqttManager.publish(topicPUB,buf,MQTT::QOS0);
+                    mqttManager.publish(topicPUB, buf, MQTT::QOS0);
                     std::cout << buf << std::endl;
+
                 }
-                if(rothandlerP.buttonPressed){
+                if (rothandlerP.buttonPressed) {
                     rothandlerP.buttonPressed = false;
                     tft.fill(0);
-                    tft.autoOrManual();
-                    tft.selectmenu(1);
+                    tft.mainMenu();
+                    tft.selectmenu(0);
                     scrollmenu = menu;
                 }
-                break;
+                    break;
+                    case MQTTsend:
 
-             default:
-                break;
+                        /*if (time_reached(mqttSendTime)) {
+                            mqttSendTime = delayed_by_ms(mqttSendTime, 2000);
+                            sprintf(buf, R"({"nr": %d, "speed": %d, "setpoint": %d, "pressure": %d, "auto": %s, "error": %s, "co2": %d, "rh": %d, "temp": %d})",
+                                    ++msg_count, (int)fan, (int)setPressure, currentPressure, autoMode ? "true" : "false", error ? "true" : "false", co2, rh, t);
+                            mqttManager.publish(topicPUB, buf, MQTT::QOS0);
+                            std::cout << buf << std::endl;
+                        }*/
+                        break;
+                    case connect:
+                        if (rothandlerA.rotaryturned) {
+                            rothandlerA.rotaryturned = false;
+                            SubMenucount += rothandlerA.getCount();
+                            if (SubMenucount > 2) {
+                                SubMenucount = 0;
+                            } else if (SubMenucount < 0) {
+                                SubMenucount = 2;
+                            }
+                            tft.selectWifimenu(SubMenucount);
+                        }
+                    if (SubMenucount == 0 && rothandlerP.buttonPressed) {
+                        rothandlerP.buttonPressed = false;
+                        /*
+                        scrollmenu = connectTowifi;*/
+                    } else if (SubMenucount == 1 && rothandlerP.buttonPressed) {
+                        rothandlerP.buttonPressed = false;
+                        tft.selctcredenttials(0);
+                        tft.credenttialsMenu();
+                        //maxScroll = alphabet.size() - 1;
+                        scrollmenu = enterCredentials;
+                    } else if (SubMenucount == 2 && rothandlerP.buttonPressed) {
+                        rothandlerP.buttonPressed = false;
+                        tft.mainMenu();
+                        tft.selectmenu(0);
+                        scrollmenu = menu;
+                    }
+                    break;
+                    case enterCredentials:
+                        if(rothandlerA.rotaryturned){
+                            rothandlerA.rotaryturned = false;
+                            SubMenucount+=rothandlerA.getCount();
+                            if(SubMenucount > 2){
+                                SubMenucount = 0;
+                            } else if(SubMenucount < 0){
+                                SubMenucount = 2;
+                            }
+                            tft.selctcredenttials(SubMenucount);
+                            std::cout << SubMenucount << std::endl;
+                        }
+                        if (SubMenucount == 0 && rothandlerP.buttonPressed) {
+                            rothandlerP.buttonPressed = false;
+                            //tft.displayKeyboard(0);
+                            isSSID = true;
+                            scrollmenu = CredentialsMenu;
+                            tft.fill(0);
+                        } else if (SubMenucount == 1 && rothandlerP.buttonPressed) {
+                            rothandlerP.buttonPressed = false;
+                            SubMenucount = 0;
+                            isMqtt = true;
+                            tft.fill(0);
+                            //tft.displayKeyboard(1);
+                            //tft.credenttialsMenu();
+                            //tft.selctcredenttials(0);
+                            scrollmenu = CredentialsMenu;
+                            keyboard = capital;
+                        } else if (SubMenucount == 2 && rothandlerP.buttonPressed) {
+                            rothandlerP.buttonPressed = false;
+                            tft.mainMenu();
+                            tft.selectmenu(0);
+                            scrollmenu = menu;
+                        }
+                        break;
+                    case CredentialsMenu:
+                        switch (key) {
+                            case up:
+                                tft.fill(0);
+                                if(isSSID){
+                                    if(!ssidEntered){
+                                        tft.text("Write SSID", 0, 20);
+                                        tft.show();
+                                        sleep_ms(2000);
+                                    }
+                                    else if(!passwordEntered){
+                                        tft.text("Write Password", 0, 20);
+                                        tft.show();
+                                        sleep_ms(2000);
+                                    }
+                                }else if(isMqtt){
+                                    if(!ssidEntered){
+                                        tft.text("Write IP", 0, 20);
+                                        tft.show();
+                                        sleep_ms(2000);
+                                    }
+                                    else if(!portEntered){
+                                        tft.text("Write Port", 0, 20);
+                                        tft.show();
+                                        sleep_ms(2000);
+                                    }
+                                }
+                                tft.displayKeyboard(0);
+                                maxScroll = alphabet.size() - 1;
+                                key = down;
+                                break;
+                            case down:
+                                if (_button3.buttonPressed) {
+                                    _button3.buttonPressed = false;
+                                    if (keyboard == capital) {
+                                        maxScroll = lowercase_alphabet.size() - 1;
+                                        keyboard = small;
+                                    } else if (keyboard == small) {
+                                        maxScroll = special_chars_numbers.size() - 1;
+                                        keyboard = number;
+                                    } else {
+                                        keyboard = capital;
+                                    }
+                                    tft.displayKeyboard(keyboard);
+                                }
+                                if (rothandlerA.rotaryturned) {
+                                    rothandlerA.rotaryturned = false;
+                                    scroll += rothandlerA.getCount();
+                                    if (scroll > maxScroll) {
+                                        scroll = 0;
+                                    } else if (scroll < 0) {
+                                        scroll = maxScroll;
+                                    }
+                                    tft.selectChar(scroll);
+                                }
+                                if (keyboard == capital && scroll >= alphabet.size()) {
+                                    scroll = alphabet.size() - 1;
+                                } else if (keyboard == small && scroll >= lowercase_alphabet.size()) {
+                                    scroll = lowercase_alphabet.size() - 1;
+                                } else if (keyboard == number && scroll >= special_chars_numbers.size()) {
+                                    scroll = special_chars_numbers.size() - 1;
+                                }
+                                tft.selectChar(scroll);
+                                if (rothandlerP.buttonPressed) {
+                                    rothandlerP.buttonPressed = false;
+                                    if (keyboard == capital) {
+                                        ssid.push_back(alphabet[scroll]);
+                                    } else if (keyboard == small) {
+                                        ssid.push_back(lowercase_alphabet[scroll]);
+                                    } else {
+                                        ssid.push_back(special_chars_numbers[scroll]);
+                                    }
+                                    // ssid.push_back(alphabet[scroll]);
+                                    //tft.displaychar(alphabet[scroll][0], positionX,52);
+                                    SSID = std::string(ssid.begin(), ssid.end());
+                                    tft.displayString(SSID);
+                                    std::cout << SSID << std::endl;
+
+                                }
+                                if (_button1.buttonPressed) {
+                                    _button1.buttonPressed = false;
+                                    if (!SSID.empty()) {
+                                        SSID = std::string(ssid.begin(), ssid.end());
+                                        //std::cout << SSID << std::endl;
+                                        if(!ssidEntered){
+                                            std::copy(ssid.begin(), ssid.end(), ssid2);
+                                            ssid2[SSID.size()] = '\0';
+                                            ssid.clear();
+                                            ssidEntered = true;
+                                            key = up;
+                                        }
+                                        else if(!passwordEntered){
+                                            std::copy(ssid.begin(), ssid.end(), password2);
+                                            password2[SSID.size()] = '\0';
+                                            ssid.clear();
+                                            passwordEntered = true;
+                                            isSSID = false;
+                                            scroll = enterCredentials;
+                                        }
+                                        else if(!ipEntered){
+                                            std::copy(ssid.begin(), ssid.end(), ip2);
+                                            ip2[SSID.size()] = '\0';
+                                            ssid.clear();
+                                            ipEntered = true;
+                                            key = up;
+                                        }
+                                        else if(!portEntered){
+                                            std::copy(ssid.begin(), ssid.end(), port2);
+                                            port2[SSID.size()] = '\0';
+                                            ssid.clear();
+                                            portEntered = true;
+                                            isMqtt = false;
+                                           scrollmenu = connect;
+                                        }
+                                        /*std::copy(ssid.begin(), ssid.end(), ssid2);
+                                        ssid2[SSID.size()] = '\0';*/
+                                        printf("SSID: %s\n", ssid2);
+                                        //ssid.clear();
+                                        //key = left;
+                                    }
+                                }
+                                if (_button2.buttonPressed) {
+                                    _button2.buttonPressed = false;
+                                    if (!ssid.empty()) {
+                                        ssid.pop_back();
+                                        //SSID = std::string(ssid.begin(), ssid.end());
+                                        tft.displayString(SSID);
+                                    }
+
+                                }
+
+                                break;
+                            case left: {
+
+
+                            }
+                                break;
+
+
+                        }
+                        break;
+                    case connectTowifi:
+                        MqttWifiManager mqttManager(ssid2, password2, ip2, atoi(port2));
+                    if (mqttManager.connectWiFi()) {
+                        printf("Connected to WiFi\n");
+                    } else {
+                        printf("Failed to connect to WiFi\n");
+                    }
+
+                        break;
+
+
+                cyw43_arch_poll(); // obsolete? - see below
+                mqttManager.yield(100); // socket that client uses calls cyw43_arch_poll()
         }
-        cyw43_arch_poll(); // obsolete? - see below
-        mqttManager.yield(100); // socket that client uses calls cyw43_arch_poll()
     }
-
 
     return 0;
 }
