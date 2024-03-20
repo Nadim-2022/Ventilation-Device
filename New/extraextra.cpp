@@ -1,4 +1,7 @@
 //
+// Created by iamna on 20/03/2024.
+//
+//
 // Created by iamna on 16/03/2024.
 //
 
@@ -30,15 +33,15 @@ MenuHandler::MenuHandler(std::shared_ptr<ModbusController> modbusController, std
 }
 void MenuHandler::setAutoMode(bool getMode) {
     this->mqttFlag = true;
-   this->autoMode = getMode;
+    this->autoMode = getMode;
 }
 
 void MenuHandler::setSetPressure(int getPressure) {
-   this->setPressure = getPressure;
+    this->setPressure = getPressure;
 }
 
 void MenuHandler::setSpeed(int getSpeed) {
-   this->speed = getSpeed;
+    this->speed = getSpeed;
 }
 void MenuHandler::readAllSensors(){
     currentFanSpeed = modbusController->readSensor("fan")/10;
@@ -70,24 +73,24 @@ void MenuHandler::publishStatus(int msg_count0, int fan, int setPressure0, int s
     char buf[256];
     sprintf(buf,R"({"nr": %d, "speed": %d, "setpoint": %d, "pressure": %d, "auto": %s,
                      "error": %s, "co2": %d, "rh": %d, "temp": %d})",
-                     msg_count0, fan, setPressure0, sensorPressure0, autoMode0 ? "true" : "false",
-                     errorflag0 ? "true" : "false", co20, rh0, temp0);
+            msg_count0, fan, setPressure0, sensorPressure0, autoMode0 ? "true" : "false",
+            errorflag0 ? "true" : "false", co20, rh0, temp0);
     //printf("Publishing from MenuHandler, mqttManager: %p, topicPUB: %s\n", mqttWifiManager.get(), topicPUB);
     mqttWifiManager->publish(topicPUB, buf, MQTT::QOS0);
     printf("Publishing: %s\n", buf);
 }
 
 
-//MenuHandler::MenuEventType MenuHandler::MenuEventType;
+MenuHandler::MenuEventType MenuHandler::menuEvent;
 
 void MenuHandler::event() {
     if(mqttFlag){
         mqttFlag = false;
         if(autoMode){
-            MenuEventType = controlPressure;
+            menuEvent = MenuHandler::MenuEventType::controlPressure;
         }else{
             autoMode = false;
-            MenuEventType = status;
+            menuEvent = MenuHandler::MenuEventType::status;
             modbusController->writeSensor("fan", speed * 10);
         }
     }
@@ -100,21 +103,21 @@ void MenuHandler::event() {
                           co2, rh, temp);
         }
     }
-    switch (MenuEventType) {
-        case start: // Start the system and display the welcome screen
+    switch (menuEvent) {
+        case MenuHandler::MenuEventType::start: // Start the system and display the welcome screen
             display->welcomeScreen();
             sleep_ms(2000);
             display->mainMenu();
             display->selectmenu(0);
-            MenuEventType = mainMenu;
+            menuEvent = MenuHandler::MenuEventType::mainMenu;
             rotaryButton.buttonPressed = false;
             break;
-        case status: // Display the status of the system and the sensors and the fan speed
+        case MenuHandler::MenuEventType::status: // Display the status of the system and the sensors and the fan speed
             if(rotaryButton.buttonPressed){
                 rotaryButton.buttonPressed = false;
                 display->mainMenu();
                 display->selectmenu(0);
-                MenuEventType = mainMenu;
+                menuEvent = MenuHandler::MenuEventType::mainMenu;
             }else {
 
                 currentFanSpeed = modbusController->readSensor("fan")/10;
@@ -130,7 +133,7 @@ void MenuHandler::event() {
                                        pressure, display->wifi_signal);
             }
             break;
-        case mainMenu: // Main menu to select the different options
+        case MenuHandler::MenuEventType::mainMenu: // Main menu to select the different options
             if (rotary.rotaryturned) {
                 //std::cout << "Rotary turned in  mebu" << std::endl;
                 rotary.rotaryturned  = false;
@@ -143,31 +146,31 @@ void MenuHandler::event() {
                 rotaryButton.buttonPressed = false;
                 switch (menuRot) {
                     case 0:
-                        MenuEventType = setSpeedMode;
+                        menuEvent = MenuHandler::MenuEventType::setSpeed;
                         display->displayControlSpeed(speed);
                         break;
                     case 1:
-                        MenuEventType = setPressureMode;
+                        menuEvent = MenuHandler::MenuEventType::setPressure;
                         display->displayControlPressureLevel(pressure);
                         break;
                     case 2:
-                        MenuEventType = wifiAndMqtt;
+                        menuEvent = MenuHandler::MenuEventType::wifiAndMqtt;
                         rotaryButton.buttonPressed = false;
                         display->wifiandmqttmenu();
                         display->selectwifiandmqttmenu(0);
                         menuRot = 3;
                         break;
                     case 3:
-                        MenuEventType = status;
+                        menuEvent = MenuHandler::MenuEventType::status;
                         break;
                 }
             }
             /*if(rotaryButton.buttonPressed && menuRot == 3){
                 rotaryButton.buttonPressed = false;
-                MenuEventType = MenuHandler::MenuEventType::status;
+                menuEvent = MenuHandler::MenuEventType::status;
             }*/
             break;
-        case MenuEventType::setSpeedMode:
+        case MenuEventType::setSpeed:
             if (rotary.rotaryturned) {
                 rotary.rotaryturned = false;
                 speed += rotary.getCount();
@@ -181,11 +184,11 @@ void MenuHandler::event() {
                 rotaryButton.buttonPressed = false;
                 display->mainMenu();
                 display->selectmenu(0);
-                MenuEventType = mainMenu;
+                menuEvent = MenuHandler::MenuEventType::mainMenu;
             }
             break;
 
-        case setPressureMode:
+        case MenuEventType::setPressure:
             if (rotary.rotaryturned) {
                 rotary.rotaryturned = false;
                 pressure += rotary.getCount();
@@ -200,7 +203,7 @@ void MenuHandler::event() {
                 /*display->mainMenu();
                 display->selectmenu(0);*/
                 currentPressure = 0;
-                MenuEventType = controlPressure;
+                menuEvent = MenuHandler::MenuEventType::controlPressure;
                 speed = (speed < 9) ? 9 : speed;
                 modbusController->writeSensor("fan",speed);
                 currentFanSpeed = modbusController->readSensor("fan")/10;
@@ -212,7 +215,7 @@ void MenuHandler::event() {
             }
             break;
 
-        case controlPressure:
+        case MenuEventType::controlPressure:
             currentPressure = modbusController->readPressure();
             if(currentPressure < setPressure-2){
                 speed ++;
@@ -243,7 +246,7 @@ void MenuHandler::event() {
                 rotaryButton.buttonPressed = false;
                 display->mainMenu();
                 display->selectmenu(0);
-                MenuEventType = mainMenu;
+                menuEvent = MenuHandler::MenuEventType::mainMenu;
             }
             // throw error and stop the fan
             if(time_reached(errorCheckpoll)){
@@ -255,7 +258,7 @@ void MenuHandler::event() {
                     display->mainMenu();
                     display->selectmenu(0);
                     menuRot = 0;
-                    MenuEventType = mainMenu;
+                    menuEvent = MenuHandler::MenuEventType::mainMenu;
                 }
             }
             break;
@@ -272,32 +275,32 @@ void MenuHandler::event() {
                 rotaryButton.buttonPressed = false;
                 switch (menuRot) {
                     case 0:
-                        MenuEventType = connectWifiandMqtt;
+                        menuEvent = MenuHandler::MenuEventType::connectWifiandMqtt;
 
                         break;
                     case 1:
-                        MenuEventType = CredentialsMenu;
+                        menuEvent = MenuEventType::CredentialsMenu;
                         menuRot = 0;
                         display->credenttialsMenu();
                         display->selctcredenttials(0);
                         break;
                     case 2:
-                        MenuEventType = mainMenu;
+                        menuEvent = MenuEventType::mainMenu;
                         display->mainMenu();
                         display->selectmenu(0);
                         break;
                 }
             }
             break;
-        case connectWifiandMqtt: // Connect to wifi and mqtt nothing else and return to main menu
+        case MenuHandler::MenuEventType::connectWifiandMqtt: // Connect to wifi and mqtt nothing else and return to main menu
             credentialsEntered = true;
             connectNow = true;
-            MenuEventType = mainMenu;
+            menuEvent = MenuEventType::mainMenu;
             display->mainMenu();
             display->selectmenu(0);
             break;
 
-        case CredentialsMenu:
+        case MenuEventType::CredentialsMenu:
             if (rotary.rotaryturned) {
                 rotary.rotaryturned  = false;
                 menuRot += rotary.getCount();
@@ -309,13 +312,13 @@ void MenuHandler::event() {
                 rotaryButton.buttonPressed = false;
                 switch (menuRot) {
                     case 0:
-                        MenuEventType = enterCredentials;
+                        menuEvent = MenuEventType::enterCredentials;
                         isWiFi = true;
                         display->fill(0);
                         key = up;
                         break;
                     case 1:
-                        MenuEventType = enterCredentials;
+                        menuEvent = MenuEventType::enterCredentials;
                         isMqtt = true;
                         display->fill(0);
                         key = up;
@@ -323,13 +326,13 @@ void MenuHandler::event() {
                     case 2:
                         display->wifiandmqttmenu();
                         display->selectwifiandmqttmenu(0);
-                        MenuEventType = wifiAndMqtt;
+                        menuEvent = MenuEventType::wifiAndMqtt;
                         break;
                 }
             }
             break;
 
-        case enterCredentials:
+        case MenuEventType::enterCredentials:
             switch (key) {
                 case up:
                     display->fill(0);
@@ -392,13 +395,13 @@ void MenuHandler::event() {
                         printf("menuRot: %d\n", menuRot);
                     }
                     // Limit The menuRot to the size of the array
-                   /* if (keyboard == capital && menuRot >= alphabet.size()) {
-                        menuRot = alphabet.size() - 1;
-                    } else if (keyboard == small && menuRot >= lowercase_alphabet.size()) {
-                        menuRot = lowercase_alphabet.size() - 1;
-                    } else if (keyboard == number && menuRot >= special_chars_numbers.size()) {
-                        menuRot = special_chars_numbers.size() - 1;
-                    }*/
+                    /* if (keyboard == capital && menuRot >= alphabet.size()) {
+                         menuRot = alphabet.size() - 1;
+                     } else if (keyboard == small && menuRot >= lowercase_alphabet.size()) {
+                         menuRot = lowercase_alphabet.size() - 1;
+                     } else if (keyboard == number && menuRot >= special_chars_numbers.size()) {
+                         menuRot = special_chars_numbers.size() - 1;
+                     }*/
                     // Add the selected character to the buffer
                     if (rotaryButton.buttonPressed) {
                         rotaryButton.buttonPressed = false;
@@ -442,7 +445,7 @@ void MenuHandler::event() {
                                 currentCharBuff.clear();
                                 passwordEntered = true;
                                 isWiFi = false;
-                                MenuEventType = CredentialsMenu;
+                                menuEvent = MenuEventType::CredentialsMenu;
                                 display->credenttialsMenu();
                                 display->selctcredenttials(0);
                             }
@@ -459,7 +462,7 @@ void MenuHandler::event() {
                                 currentCharBuff.clear();
                                 portEntered = true;
                                 isMqtt = false;
-                                MenuEventType = CredentialsMenu;
+                                menuEvent = MenuEventType::CredentialsMenu;
                                 display->credenttialsMenu();
                                 display->selctcredenttials(0);
                             }
@@ -485,3 +488,137 @@ void MenuHandler::event() {
     }
 
 }
+////////////////////////////////////////////////////////////////////////
+
+//
+// Created by iamna on 16/03/2024.
+//
+
+#ifndef PICO_MODBUS_MENUHANDLER_H
+#define PICO_MODBUS_MENUHANDLER_H
+
+#include "pico/stdlib.h"
+#include "hardware/i2c.h"
+#include "hardware/uart.h"
+#include "hardware/irq.h"
+#include "hardware/gpio.h"
+#include "pico/stdlib.h"
+#include "pico/time.h"
+#include "hardware/timer.h"
+#include "tftdisplay.h"
+#include "ModbusController.h"
+#include "Menu.h"
+#include "Interrupt_Handler.h"
+#include "MqttWifiManager.h"
+
+class MenuHandler{
+private:
+    std::shared_ptr<MqttWifiManager>& mqttWifiManager;
+    std::shared_ptr<ModbusController> modbusController;
+    std::shared_ptr<TFTDisplay> display;
+    absolute_time_t modbus_poll = make_timeout_time_ms(3000);
+    absolute_time_t errorCheckpoll = make_timeout_time_ms(120000); // 2 minutes
+    int speed = 0;
+    int current_speed = 0;
+    int max_speed = 1000;
+    int pressure = 0;
+    int setPressure = 0;
+    int currentPressure = 0;
+    int counter = 0;
+    int menuRot = 0;
+    int currentFanSpeed;
+    bool errorFlag = false;
+    bool mqttFlag = false;
+    bool autoMode = false;
+    int msg_count = 0;
+    Interrupt_Handler &rotary;
+    Interrupt_Handler &rotaryButton;
+    Interrupt_Handler &button0;
+    Interrupt_Handler &button1;
+    Interrupt_Handler &button2;
+
+
+    enum class MenuEventType {
+        start,
+        status,
+        mainMenu,
+        setSpeed,
+        setPressure,
+        controlPressure,
+        wifiAndMqtt,
+        connectWifiandMqtt,
+        CredentialsMenu,
+        enterCredentials,
+        errorstatus
+
+    };
+
+
+    // Only for Wifi and Mqtt
+    enum key{
+        up,
+        down
+    }key = up;
+    enum keyboard{
+        capital = 0,
+        small = 1,
+        number = 2
+    } keyboard = capital;
+    std::array<char, 26> alphabet = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+    std::array<char, 26> lowercase_alphabet = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+    std::array<char, 36> special_chars_numbers = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+                                                  '!', '@', '#', '$', '%', '^', '&', '*', '(', ')',
+                                                  '-', '_', '=', '+', '[', ']', '{', '}', ';', ':',
+                                                  '\'', '\"', ',', '.', '<', '>'};
+    std::vector<char> currentCharBuff;
+    std::vector<char> finalssid;
+    std::vector<char> password;
+    std::vector<char> ip;
+    std::vector<char> port;
+    std:: string displyString;
+    bool isWiFi = false;
+    bool isMqtt = false;
+    bool ssidEntered = false;
+    bool passwordEntered = false;
+    bool ipEntered = false;
+    bool portEntered = false;
+    int maxScroll = 0;
+    char ssid2[25]= " ";
+    char password2[25] = " ";
+    char ip2[25] =" ";
+    char port2[25] = "";
+    bool credentialsEntered = false;
+
+    int co2 =0;
+    int rh = 0;
+    int temp = 0;
+    int fanSpeed = 0;
+
+    const char* topicPUB = "controller/status";
+    absolute_time_t mqttPoll = make_timeout_time_ms(5000);
+
+public:
+    MenuHandler(std::shared_ptr<ModbusController> modbusController, std::shared_ptr<TFTDisplay> display1,
+                Interrupt_Handler &rotaryA,  Interrupt_Handler &rotaryB,
+                Interrupt_Handler &button0, Interrupt_Handler &button1, Interrupt_Handler &button2, std::shared_ptr<MqttWifiManager>& mqttManager);
+
+    void event();
+    void setAutoMode(bool autoMode);
+    void setSetPressure(int setPressure);
+    void setSpeed(int speed);
+    void sentMqtt();
+    static MenuEventType menuEvent;
+    void publishStatus(int msg_count, int fan, int setPressure, int sensorPressure, bool autoMode, bool errorflag, int co2, int rh, int t);
+    void readAllSensors();
+    std::string getSSID() const;
+    std::string getPassword() const;
+    std::string getMqttBrokerAddress() const;
+    int getMqttBrokerPort() const;
+    bool setConection();
+    void setErrorTimer(int time);
+
+    bool connectNow = false;
+    bool connected = false;
+};
+
+#endif //PICO_MODBUS_MENUHANDLER_H

@@ -348,8 +348,9 @@ void TFTDisplay::selctcredenttials(int selection) {
 }
 void TFTDisplay::errorScreen() {
     fill(0);
-    text("Error", 0, 22);
+    text("Error", 44, 5);
+    text("Pressure Low", 0, 22);
     text("Please restart", 0, 32);
-    text("the device", 38, 42);
+    text("The device", 0, 42);
     show();
 }

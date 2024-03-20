@@ -21,7 +21,6 @@ public:
     void writeSensor(const std::string& sensorName, uint16_t value);
     int readSensor(const std::string& sensorName);
     int readPressure();
-
 private:
     int pressure;
     int sensorValue;

@@ -46,16 +46,54 @@ int main(){
     i2c_init(i2c0, 100000);
     gpio_set_function(16, GPIO_FUNC_I2C);
     gpio_set_function(17, GPIO_FUNC_I2C);
-    struct credentials {
-        std::string ssid;
-        std::string password;
-        std::string mqttBrokerAddress;
-        int mqttBrokerPort;
-    };
-    uint16_t device_address = 0x50;
+    bool connectNow = false;
+
+    EEPROM eeprom;
+    uint16_t address = 0;
+   /* std::string ssid;
+    std::string password;
+    std::string mqttBrokerAddress;
+    int mqttBrokerPort;*/
+
+   /* std::string ssid2 = "TP-Link_A2FC";
+    std::string password2 = "nadimahmed";
+    std::string mqttBrokerAddress2 = "192.168.0.210";
+    int mqttBrokerPort2 = 1883;
+
+    eeprom.write_string(0, ssid);
+    eeprom.write_string(64, password);
+    eeprom.write_string(128 , mqttBrokerAddress);
+    eeprom.write_number(192, mqttBrokerPort);*/
+
+    std::string ssid = eeprom.read_string(0);
+    std::string password = eeprom.read_string(64);
+    std::string mqttBrokerAddress = eeprom.read_string(128);
+    int mqttBrokerPort = eeprom.read_number(192);
+    //eeprom.erase_log(0);
+    if(!ssid.empty()){
+        printf("SSID: %s\n", ssid.c_str());
+        connectNow = true;
+    }
+    else{
+        printf("SSID is empty\n");
+    }
+    /*if(!password.empty()){
+        printf("Password: %s\n", password2.c_str());
+    }
+    else{
+        printf("Password is empty\n");
+    }
+    if(!mqttBrokerAddress.empty()){
+        printf("MQTT Broker Address: %s\n", mqttBrokerAddress2.c_str());
+    }
+    else{
+        printf("MQTT Broker Address is empty\n");
+    }
+    printf("MQTT Broker Port: %d\n", mqttBrokerPort2);*/
 
 
-   /* uint8_t rotA = 10;
+
+    uint8_t rotA = 10;
     uint8_t rotB = 11;
     uint8_t rotP = 12;
     uint8_t SW0 = 9;
@@ -95,17 +133,7 @@ int main(){
     bool autoMode = false;
     int setPressure = 0;
     int speed = 0;
-    bool connectNow = false;
-    // read from eeprom if read than connectNow true
 
-  *//*  std::string ssid = "Nadim";
-    std::string password = "nadimahmed";
-    std::string mqttBrokerAddress = "172.20.10.5";
-    int mqttBrokerPort = 1883;*//*
-    std::string ssid = " ";
-    std::string password = " ";
-    std::string mqttBrokerAddress = " ";
-    int mqttBrokerPort = 0;
 
     bool pullInternet = false;
     int rc;
@@ -141,11 +169,16 @@ int main(){
             mqttBrokerAddress = menuHandler.getMqttBrokerAddress();
             mqttBrokerPort = menuHandler.getMqttBrokerPort();
             // write to the eeprom
+            eeprom.write_string(0, ssid);
+            eeprom.write_string(64, password);
+            eeprom.write_string(128 , mqttBrokerAddress);
+            eeprom.write_number(192, mqttBrokerPort);
         }
         if(mqttWifiManager->isNotification()){
             mqttWifiManager->setNotification(false);
             std::cout << "Automatic mode" << std::endl;
             autoMode = mqttWifiManager->isAutomatic();
+            menuHandler.setErrorTimer(120000);
             menuHandler.setAutoMode(autoMode);
             if (autoMode) {
                 setPressure = mqttWifiManager->getvalue();
@@ -155,11 +188,11 @@ int main(){
                 menuHandler.setSpeed(speed);
             }
         }
-       *//* if(time_reached(mqttpoll)){
+        /*if(time_reached(mqttpoll)){
             mqttpoll = delayed_by_ms(mqttpoll, 5000);
             mqttWifiManager->publish(topicPUB, "status", MQTT::QOS0);
 
-        }*//*
+        }*/
         menuHandler.event();
         if(pullInternet){
             cyw43_arch_poll(); // obsolete? - see below
@@ -167,6 +200,5 @@ int main(){
         }
 
     }
-*/
   return 0;
 }

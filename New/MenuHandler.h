@@ -25,6 +25,7 @@ private:
     std::shared_ptr<ModbusController> modbusController;
     std::shared_ptr<TFTDisplay> display;
     absolute_time_t modbus_poll = make_timeout_time_ms(3000);
+    absolute_time_t errorCheckpoll = make_timeout_time_ms(120000); // 2 minutes
     int speed = 0;
     int current_speed = 0;
     int max_speed = 1000;
@@ -45,12 +46,12 @@ private:
     Interrupt_Handler &button2;
 
 
-    enum class MenuEventType {
+    enum MenuEventType {
         start,
         status,
         mainMenu,
-        setSpeed,
-        setPressure,
+        setSpeedMode,
+        setPressureMode,
         controlPressure,
         wifiAndMqtt,
         connectWifiandMqtt,
@@ -58,7 +59,7 @@ private:
         enterCredentials,
         errorstatus
 
-    };
+    } MenuEventType = start;
 
 
     // Only for Wifi and Mqtt
@@ -114,7 +115,7 @@ public:
     void setSetPressure(int setPressure);
     void setSpeed(int speed);
     void sentMqtt();
-    static MenuEventType menuEvent;
+    //static MenuEventType menuEvent;
     void publishStatus(int msg_count, int fan, int setPressure, int sensorPressure, bool autoMode, bool errorflag, int co2, int rh, int t);
     void readAllSensors();
     std::string getSSID() const;
@@ -122,6 +123,7 @@ public:
     std::string getMqttBrokerAddress() const;
     int getMqttBrokerPort() const;
     bool setConection();
+    void setErrorTimer(int time);
 
     bool connectNow = false;
     bool connected = false;
